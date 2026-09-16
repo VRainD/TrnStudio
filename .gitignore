@@ -1,0 +1,5 @@
+.local-media/
+.qa/
+node_modules/
+.env
+*.tar

@@ -1,0 +1,13 @@
+{
+  "name": "trnstudio",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Gorizont audio and video studio with local FFmpeg extraction",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node tools/preview.mjs",
+    "test": "node tools/test-media.mjs",
+    "test:ui": "node tools/test-interface.cjs"
+  },
+  "devDependencies": { "playwright": "1.62.1" }
+}
