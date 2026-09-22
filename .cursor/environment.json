@@ -1,0 +1,11 @@
+{
+  "name": "TrnStudio · Горизонт",
+  "install": "npm ci && npx playwright install chromium",
+  "terminals": [
+    {
+      "name": "studio",
+      "command": "npm start"
+    }
+  ],
+  "ports": [4173]
+}
