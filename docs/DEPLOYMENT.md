@@ -47,7 +47,7 @@ docker compose --profile gpu-check run --rm gpu-check
 
 ### Пробник GigaAM (`gpu-probe`)
 
-Целевая карта для sizing/приёмки: **RTX 3060 Ti 16 ГБ**. Подробности, pin’ы и таблица VRAM/RTF — в [GPU_PROBE.md](GPU_PROBE.md).
+Целевая карта для sizing/приёмки: **RTX 2060** (типично **6 ГБ** VRAM; Super часто 8 ГБ). Подробности, pin’ы и таблица VRAM/RTF — в [GPU_PROBE.md](GPU_PROBE.md).
 
 ```powershell
 docker compose --profile gpu-probe build gpu-probe

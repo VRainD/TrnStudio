@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Minimal GigaAM GPU probe for TrnStudio / Горизонт.
 
-Target acceptance GPU: NVIDIA RTX 3060 Ti 16 GB.
+Target acceptance GPU: NVIDIA RTX 2060 (typically 6 GB VRAM; Super often 8 GB).
 Measures device info, model-load VRAM, optional short-audio RTF.
 Does not change the Gorizont UI. Long-form chunking/jobs land in later PRs.
 """
@@ -74,7 +74,7 @@ Smoke (needs NVIDIA Container Toolkit + GPU):
   docker compose --profile gpu-probe run --rm gpu-probe
   docker compose --profile gpu-probe run --rm -v "$PWD/samples:/app/samples:ro" gpu-probe --audio /app/samples/clip.wav
 
-Target GPU for acceptance notes: RTX 3060 Ti 16 GB.
+Target GPU for acceptance notes: RTX 2060 (~6 GB VRAM).
 UI of Горизонт is unchanged by this profile.
 """.strip()
     print(text)
@@ -126,16 +126,18 @@ def main(argv: list[str] | None = None) -> int:
 
     report: dict = {
         "product": "TrnStudio / Горизонт",
-        "target_gpu": "RTX 3060 Ti 16 GB",
+        "target_gpu": "RTX 2060 (~6 GB VRAM)",
         "model": args.model,
         "notes": [
             "Short .transcribe is for audio up to ~25 s; long-form/chunking is a later phase-1 step.",
-            "Do not treat RTX 4090 Laptop numbers as acceptance for this product.",
-            "Fill measured_* fields on a real 3060 Ti host after first successful run.",
+            "Do not treat RTX 3060 Ti / 4090 Laptop numbers as acceptance for this product.",
+            "Fill measured_* fields on a real RTX 2060 host after first successful run.",
+            "6 GB is tight for GigaAM RNNT vs prior 16 GB budget — watch peak VRAM / chunk size.",
         ],
-        "acceptance_hints_3060ti_16gb": {
-            "total_vram_mib_expected": 16384,
-            "peak_vram_budget_mib": "measure on device; keep headroom for OS/display (~1–2 GiB)",
+        "acceptance_hints_rtx2060": {
+            "total_vram_mib_expected": 6144,
+            "total_vram_mib_super_expected": 8192,
+            "peak_vram_budget_mib": "measure on device; headroom is tight on 6 GB — reduce chunk/batch on OOM",
             "rtf_goal": "RTF < 1.0 preferred for interactive local use; record actual RTF here",
             "measured_peak_vram_mib": None,
             "measured_rtf": None,
@@ -250,7 +252,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
-    hints = report["acceptance_hints_3060ti_16gb"]
+    hints = report["acceptance_hints_rtx2060"]
     peak = after_load.get("max_allocated_mib")
     if report.get("cuda_after_infer"):
         peak = report["cuda_after_infer"].get("max_allocated_mib", peak)
@@ -267,10 +269,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote {out}")
 
     name = (after_load.get("device_name") or "").lower()
-    if "3060" not in name:
+    if "2060" not in name:
         print(
-            "NOTE: running device is not reported as 3060 Ti. "
-            "Record metrics on the acceptance GPU (RTX 3060 Ti 16 GB).",
+            "NOTE: running device is not reported as 2060. "
+            "Record metrics on the acceptance GPU (RTX 2060).",
             file=sys.stderr,
         )
 
