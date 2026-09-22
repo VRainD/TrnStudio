@@ -1,6 +1,6 @@
 # GPU-пробник GigaAM (локальный install)
 
-Цель: проверить путь CUDA → PyTorch → GigaAM на **целевой карте RTX 3060 Ti 16 ГБ** до подключения UI Горизонта к реальному ASR.
+Цель: проверить путь CUDA → PyTorch → GigaAM на **целевой карте RTX 2060** (типично **6 ГБ** VRAM; Super часто 8 ГБ) до подключения UI Горизонта к реальному ASR.
 
 Интерфейс `prototype/` этим профилем **не меняется**. React и биллинг не запускаются. LICENSE-файлы не затрагиваются.
 
@@ -19,7 +19,7 @@
 
 - NVIDIA driver + [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - Docker Compose с GPU passthrough
-- Для приёмки — **RTX 3060 Ti 16 ГБ** (замеры с 4090 Laptop не считать эталоном)
+- Для приёмки — **RTX 2060** (~6 ГБ; Super ~8 ГБ). Замеры с 3060 Ti / 4090 Laptop не считать эталоном
 
 Сначала проброс GPU:
 
@@ -63,22 +63,22 @@ docker compose --profile gpu-probe run --rm \
   gpu-probe --json-out /out/gpu-probe-report.json
 ```
 
-## VRAM / RTF — ориентиры для RTX 3060 Ti 16 ГБ
+## VRAM / RTF — ориентиры для RTX 2060 (~6 ГБ)
 
 | Метрика | Ориентир | Куда писать факт |
 |---|---|---|
-| Полный VRAM карты | ~16384 MiB | поле `total_vram_mib` в выводе probe |
-| Peak VRAM после load + short infer | измерить на хосте; оставить запас ~1–2 GiB под ОС/дисплей | `acceptance_hints_3060ti_16gb.measured_peak_vram_mib` |
+| Полный VRAM карты | ~6144 MiB (типично); Super ~8192 MiB | поле `total_vram_mib` в выводе probe |
+| Peak VRAM после load + short infer | измерить на хосте; запас под ОС/дисплей тесный на 6 ГБ | `acceptance_hints_rtx2060.measured_peak_vram_mib` |
 | RTF (wall / audio duration) | желательно **< 1.0** для интерактивного локального сценария | `measured_rtf` |
-| Имя устройства | должно содержать `3060` для приёмочного прогона | `measured_device_name` |
+| Имя устройства | должно содержать `2060` для приёмочного прогона | `measured_device_name` |
 
-Пока в репозитории нет заполненных цифр с 3060 Ti — это ожидаемо: cloud/CI без этой GPU. После первого прогона на целевой машине приложите JSON-отчёт к issue/PR и обновите таблицу ниже.
+Пока в репозитории нет заполненных цифр с RTX 2060 — это ожидаемо: cloud/CI без этой GPU. **Риск:** 6 ГБ заметно теснее прежнего ориентира 16 ГБ (3060 Ti) для GigaAM RNNT — при OOM уменьшать chunk/batch. После первого прогона на целевой машине приложите JSON-отчёт к issue/PR и обновите таблицу ниже.
 
-### Фактические замеры (заполнить на 3060 Ti)
+### Фактические замеры (заполнить на RTX 2060)
 
 | Дата | Драйвер / CUDA host | Модель | Peak VRAM (MiB) | RTF | Примечание |
 |---|---|---|---|---|---|
-| — | — | `v3_e2e_rnnt` | — | — | ещё не прогнано на 3060 Ti |
+| — | — | `v3_e2e_rnnt` | — | — | ещё не прогнано на RTX 2060 |
 
 ## Ограничения этого шага
 

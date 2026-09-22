@@ -38,7 +38,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-  # GigaAM path smoke for acceptance GPU RTX 3060 Ti 16 GB.
+  # GigaAM path smoke for acceptance GPU RTX 2060 (~6 GB VRAM).
   # Does not start the Gorizont UI or billing. See docs/GPU_PROBE.md.
   gpu-probe:
     image: gorizont-gpu-probe:0.2.0

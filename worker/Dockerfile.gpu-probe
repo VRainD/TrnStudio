@@ -1,4 +1,4 @@
-# GPU probe for GigaAM (RTX 3060 Ti 16 GB target)
+# GPU probe for GigaAM (RTX 2060 target, typically 6 GB VRAM)
 # Pins mirror dubr1k/GigaAMGUI Dockerfile (CUDA 12.4 / torch 2.6.0+cu124 / GigaAM 0a3f103).
 # Does not vendor GigaAMGUI application code. Does not change Gorizont UI.
 
