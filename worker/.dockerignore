@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 *.json
 samples/
+
+# already covered; keep explicit
+__pycache__/
+*.py[cod]
