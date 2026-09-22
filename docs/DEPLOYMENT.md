@@ -45,6 +45,17 @@ docker compose --profile gpu-check run --rm gpu-check
 
 Ожидается таблица NVIDIA с целевой видеокартой. Это только проверка проброса, не тест GigaAM. При офлайн-переносе образ `nvidia/cuda:12.4.1-base-ubuntu22.04` нужно предварительно скачать и перенести отдельно. На Linux нужен NVIDIA Container Toolkit; Windows использует интеграцию Docker Desktop/WSL2.
 
+### Пробник GigaAM (`gpu-probe`)
+
+Целевая карта для sizing/приёмки: **RTX 3060 Ti 16 ГБ**. Подробности, pin’ы и таблица VRAM/RTF — в [GPU_PROBE.md](GPU_PROBE.md).
+
+```powershell
+docker compose --profile gpu-probe build gpu-probe
+docker compose --profile gpu-probe run --rm gpu-probe
+```
+
+UI студии этим профилем не меняется. Образ probe тяжёлый (CUDA + torch); для офлайн-переноса его нужно `docker save` отдельно от `gorizont-studio`.
+
 ## Эксплуатация
 
 ```powershell

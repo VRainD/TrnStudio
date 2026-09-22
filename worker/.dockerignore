@@ -1,0 +1,10 @@
+# Ignore build junk inside worker/ (probe Dockerfile copies only probe_transcribe.py)
+__pycache__/
+*.pyc
+.pytest_cache/
+*.json
+samples/
+
+# already covered; keep explicit
+__pycache__/
+*.py[cod]
