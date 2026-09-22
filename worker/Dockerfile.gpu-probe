@@ -1,0 +1,66 @@
+# GPU probe for GigaAM (RTX 3060 Ti 16 GB target)
+# Pins mirror dubr1k/GigaAMGUI Dockerfile (CUDA 12.4 / torch 2.6.0+cu124 / GigaAM 0a3f103).
+# Does not vendor GigaAMGUI application code. Does not change Gorizont UI.
+
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HUB_DISABLE_SYMLINKS_WARNING=1 \
+    GIGAAM_MODEL=v3_e2e_rnnt \
+    GIGAAM_PYTORCH_MODEL_DIR=/data/models/gigaam \
+    HF_HOME=/data/models/huggingface \
+    TORCH_HOME=/data/models/torch \
+    HOME=/data/runtime-home
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-venv \
+    python3.10-dev \
+    python3-pip \
+    ffmpeg \
+    libsndfile1 \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python3
+
+RUN python -m pip install --upgrade pip "setuptools<81" wheel
+
+WORKDIR /app
+
+# Official cu124 trio first (same contract as GigaAMGUI).
+RUN pip install --no-cache-dir \
+    torch==2.6.0 torchaudio==2.6.0 torchvision==0.21.0 \
+    --index-url https://download.pytorch.org/whl/cu124
+
+# Pinned GigaAM revision used by GigaAMGUI Docker builds.
+RUN git clone https://github.com/salute-developers/GigaAM.git /tmp/gigaam \
+    && cd /tmp/gigaam \
+    && git checkout 0a3f1036d93287d5ef226911ec795bde8ef05d57 \
+    && pip install --no-cache-dir --no-build-isolation . \
+    && rm -rf /tmp/gigaam
+
+# Minimal probe deps (official short-audio path; longform/chunking comes later).
+RUN pip install --no-cache-dir \
+    "numpy>=1.26,<3" \
+    "soundfile>=0.12,<1" \
+    "huggingface-hub>=0.20,<1"
+
+RUN python -c "import torch, torchaudio, torchvision; \
+assert torch.__version__.startswith('2.6.0'), torch.__version__; \
+assert torchaudio.__version__.startswith('2.6.0'), torchaudio.__version__; \
+assert torchvision.__version__.startswith('0.21.0'), torchvision.__version__; \
+import gigaam; print('gigaam ok', torch.__version__)"
+
+RUN useradd --create-home --uid 1000 --shell /usr/sbin/nologin probe \
+    && mkdir -p /data/models/gigaam /data/models/huggingface /data/models/torch /data/runtime-home /app/samples \
+    && chown -R probe:probe /data /app
+
+COPY --chown=probe:probe probe_transcribe.py /app/probe_transcribe.py
+
+USER probe
+ENTRYPOINT ["python", "/app/probe_transcribe.py"]
+CMD ["--help-run"]

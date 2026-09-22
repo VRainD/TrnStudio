@@ -58,18 +58,27 @@ docker compose up -d --build
 
 ## Docker и перенос
 
-`docker compose up -d --build` запускает студию на http://127.0.0.1:4180. В образ включены Node.js, FFmpeg и FFprobe; установка их на целевом хосте не нужна. [Инструкция переноса](docs/DEPLOYMENT.md) описывает Windows/WSL2, офлайн-перенос через `docker save/load`, проверку GPU, журналы и ограничения текущей версии. GPU-профиль проверяет доступ к NVIDIA, но ещё не запускает GigaAM.
+`docker compose up -d --build` запускает студию на http://127.0.0.1:4180. В образ включены Node.js, FFmpeg и FFprobe; установка их на целевом хосте не нужна. [Инструкция переноса](docs/DEPLOYMENT.md) описывает Windows/WSL2, офлайн-перенос через `docker save/load`, проверку GPU, журналы и ограничения текущей версии.
+
+Профиль `gpu-check` только показывает `nvidia-smi`. Профиль **`gpu-probe`** поднимает минимальный контейнер с pinned CUDA/PyTorch/GigaAM и замеряет VRAM/RTF (целевая карта приёмки — **RTX 3060 Ti 16 ГБ**). UI Горизонта при этом не меняется. Подробности: [docs/GPU_PROBE.md](docs/GPU_PROBE.md).
+
+```bash
+docker compose --profile gpu-check run --rm gpu-check
+docker compose --profile gpu-probe build gpu-probe
+docker compose --profile gpu-probe run --rm gpu-probe
+```
 
 ## Целевая архитектура
 
 GigaAM v3 e2e RNNT → Python/FastAPI → PostgreSQL → один GPU worker → React/TypeScript → Docker Compose на Windows 11/WSL2. Для публичного запуска — отдельный HTTPS шлюз и исходящее VPN-соединение с вычислительной машиной. ЮKassa — предполагаемый платёжный провайдер. У владельца уже есть электронная касса: используем её для фискализации через отдельный адаптер, конкретный способ подключения уточняется по модели/сервису. Покупка новой кассы в базовый план не входит.
 
-Целевой бюджет памяти — 16 ГБ; необходим реальный замер на целевой GPU. Производительность GigaAM пока не проверялась.
+Целевой бюджет VRAM — **16 ГБ на RTX 3060 Ti**; необходим реальный замер через `gpu-probe`. Цифры с 4090 Laptop не использовать как эталон приёмки.
 
 ## Документация
 
 - [Архитектура, продукт, авторизация и биллинг](docs/SPECIFICATION.md)
 - [Docker, Windows/WSL2 и офлайн-перенос](docs/DEPLOYMENT.md)
+- [GPU-пробник GigaAM (3060 Ti 16 ГБ)](docs/GPU_PROBE.md)
 - [Критерии приёмки перед публичным запуском](docs/ACCEPTANCE.md)
 - [История изменений](CHANGELOG.md)
 - [Работа над проектом](CONTRIBUTING.md)
@@ -78,7 +87,7 @@ GigaAM v3 e2e RNNT → Python/FastAPI → PostgreSQL → один GPU worker →
 
 - [x] Интерфейс и локальная обработка медиа.
 - [x] Тариф и контейнерная упаковка.
-- [ ] GPU-пробник GigaAM и замеры качества/скорости.
+- [ ] GPU-пробник GigaAM и замеры VRAM/RTF на RTX 3060 Ti 16 ГБ (профиль `gpu-probe` в репозитории).
 - [ ] Очередь, хранение результатов и редактор транскриптов.
 - [ ] Учётные записи и изоляция данных пользователей.
 - [ ] Эквайринг и интеграция существующей кассы.

@@ -38,5 +38,34 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+  # GigaAM path smoke for acceptance GPU RTX 3060 Ti 16 GB.
+  # Does not start the Gorizont UI or billing. See docs/GPU_PROBE.md.
+  gpu-probe:
+    image: gorizont-gpu-probe:0.2.0
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.gpu-probe
+    profiles: [gpu-probe]
+    environment:
+      GIGAAM_MODEL: ${GIGAAM_MODEL:-v3_e2e_rnnt}
+      GIGAAM_PYTORCH_MODEL_DIR: /data/models/gigaam
+      HF_HOME: /data/models/huggingface
+      TORCH_HOME: /data/models/torch
+      HOME: /data/runtime-home
+    volumes:
+      - gpu_probe_data:/data
+    # Network required on first run to download GigaAM weights; cache lives in gpu_probe_data.
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 8g
+    pids_limit: 256
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 volumes:
   media_temp:
+  gpu_probe_data:
