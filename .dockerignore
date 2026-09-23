@@ -4,3 +4,9 @@
 !tools/
 !tools/preview.mjs
 !tools/media.mjs
+!tools/jobs.mjs
+!worker/
+!worker/longform_transcribe.py
+!worker/asr/
+!worker/asr/**
+!worker/requirements-ci.txt

@@ -6,7 +6,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node tools/preview.mjs",
-    "test": "node tools/test-media.mjs",
+    "test": "node tools/test-media.mjs && TRANSCRIBE_BACKEND=mock python3 tools/test-longform.py",
     "test:ui": "node tools/test-interface.cjs"
   },
   "devDependencies": { "playwright": "1.62.1" }
