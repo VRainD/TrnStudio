@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Long-form transcription for TrnStudio / Горизонт.
 
-Chunks audio (~20 s with quiet cuts + overlap stitch), following patterns from
-dubr1k/GigaAMGUI. Backends:
-  - gigaam: real model when CUDA + gigaam are available
-  - mock: CI/dev path without GPU (still exercises chunk planning + stitch)
+Engine behavior aligned with **VRainD/gigaamui** (`app.py`):
+  - duration ≤ 25 s → single official `model.transcribe`
+  - longer → fixed non-overlapping chunks (`CHUNK_SECONDS`, default 20)
+  - exports TXT / SRT (+ VTT for Горизонт)
 
-Acceptance GPU sizing target: RTX 2060 (~6 GB VRAM). LICENSE files untouched.
+Backends:
+  - gigaam: when CUDA + gigaam are available
+  - mock: CI/dev without GPU
+
+Acceptance GPU: RTX 2060 (~6 GB). LICENSE files untouched. UI stays Горизонт.
 """
 
 from __future__ import annotations
@@ -15,23 +19,23 @@ import argparse
 import json
 import os
 import sys
+import tempfile
 import wave
 from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
 
-# Allow `python worker/longform_transcribe.py` from repo root or /app in Docker.
 _WORKER_DIR = Path(__file__).resolve().parent
 if str(_WORKER_DIR) not in sys.path:
     sys.path.insert(0, str(_WORKER_DIR))
 
-from asr.chunking import plan_audio_chunks, stitch_overlapping_text  # noqa: E402
+from asr.chunking import plan_fixed_chunks  # noqa: E402
 from asr.exports import segments_to_srt, segments_to_txt, segments_to_vtt  # noqa: E402
 
 SAMPLE_RATE = 16_000
-MAX_CHUNK_SECONDS = 20.0
-OVERLAP_SECONDS = 2.0
+SHORT_LIMIT_SECONDS = 25.0
+DEFAULT_CHUNK_SECONDS = float(os.environ.get("CHUNK_SECONDS", "20"))
 
 
 def _load_wav_mono_f32(path: Path) -> tuple[np.ndarray, int]:
@@ -46,7 +50,6 @@ def _load_wav_mono_f32(path: Path) -> tuple[np.ndarray, int]:
     if channels > 1:
         audio = audio.reshape(-1, channels).mean(axis=1)
     if rate != SAMPLE_RATE:
-        # Lightweight linear resample when ffmpeg already targeted 16 kHz but rate differs.
         duration = len(audio) / float(rate)
         target = max(1, int(round(duration * SAMPLE_RATE)))
         positions = np.linspace(0, len(audio) - 1, target, dtype=np.float32)
@@ -72,41 +75,54 @@ def _resolve_backend(requested: str) -> str:
     return "mock"
 
 
-def _mock_transcribe_chunk(start_sec: float, end_sec: float, index: int) -> str:
-    # Deterministic placeholder so UI/jobs/export path is testable without GPU.
+def _mock_text(start_sec: float, end_sec: float, index: int) -> str:
     return f"[фрагмент {index + 1}] {start_sec:.1f}–{end_sec:.1f} с"
 
 
-def _gigaam_decode_factory(model_name: str, download_root: str | None) -> Callable[[np.ndarray], str]:
+def _result_to_text(result: Any) -> str:
+    text = getattr(result, "text", None)
+    if text is not None:
+        return str(text).strip()
+    return str(result).strip()
+
+
+def _gigaam_model(model_name: str, download_root: str | None):
     import torch
     import gigaam
 
-    kwargs: dict[str, Any] = {"fp16_encoder": True, "device": "cuda"}
+    kwargs: dict[str, Any] = {}
     if download_root:
         Path(download_root).mkdir(parents=True, exist_ok=True)
         kwargs["download_root"] = download_root
     model = gigaam.load_model(model_name, **kwargs)
-
-    def decode(window: np.ndarray) -> str:
-        # Write a temporary wav chunk — official short API expects a path.
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            tmp_path = Path(tmp.name)
+    if torch.cuda.is_available():
         try:
-            pcm = np.clip(window * 32768.0, -32768, 32767).astype(np.int16)
-            with wave.open(str(tmp_path), "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(SAMPLE_RATE)
-                wf.writeframes(pcm.tobytes())
-            with torch.inference_mode():
-                text = model.transcribe(str(tmp_path))
-            return (text or "").strip()
-        finally:
-            tmp_path.unlink(missing_ok=True)
+            model = model.cuda()
+        except Exception:
+            pass
+    return model
 
-    return decode
+
+def _write_chunk_wav(path: Path, audio: np.ndarray, sample_rate: int) -> None:
+    pcm = np.clip(audio * 32768.0, -32768, 32767).astype(np.int16)
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm.tobytes())
+
+
+def _segments_for_report(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map gigaamui-style {start,end,text} to Горизонт export shape."""
+    out = []
+    for seg in segments:
+        text = str(seg.get("text", "")).strip()
+        if not text:
+            continue
+        start = float(seg["start"])
+        end = float(seg["end"])
+        out.append({"transcription": text, "boundaries": (start, end)})
+    return out
 
 
 def transcribe_longform(
@@ -115,6 +131,7 @@ def transcribe_longform(
     backend: str = "auto",
     model_name: str | None = None,
     download_root: str | None = None,
+    chunk_seconds: float | None = None,
     progress_path: Path | None = None,
 ) -> dict[str, Any]:
     audio, rate = _load_wav_mono_f32(audio_path)
@@ -122,99 +139,121 @@ def transcribe_longform(
     resolved = _resolve_backend(backend)
     model_name = model_name or os.environ.get("GIGAAM_MODEL", "v3_e2e_rnnt")
     download_root = download_root or os.environ.get("GIGAAM_PYTORCH_MODEL_DIR") or None
+    chunk_seconds = float(chunk_seconds if chunk_seconds is not None else DEFAULT_CHUNK_SECONDS)
 
-    chunks = plan_audio_chunks(
-        audio,
-        [(0.0, duration)],
-        sample_rate=rate,
-        max_chunk_seconds=MAX_CHUNK_SECONDS,
-        overlap_seconds=OVERLAP_SECONDS if duration > MAX_CHUNK_SECONDS else 0.0,
-    )
-
-    decode: Callable[[np.ndarray], str] | None = None
-    if resolved == "gigaam":
-        decode = _gigaam_decode_factory(model_name, download_root)
-
-    segments: list[dict[str, Any]] = []
-    previous_index: int | None = None
-    previous_group: int | None = None
-
-    def write_progress(ratio: float, chunk_i: int) -> None:
+    def write_progress(payload: dict[str, Any]) -> None:
         if not progress_path:
             return
-        payload = {
-            "status": "running",
-            "progress": round(min(1.0, max(0.0, ratio)), 4),
-            "chunk": chunk_i + 1,
-            "chunks": len(chunks),
-            "backend": resolved,
-        }
         progress_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
 
-    for i, chunk in enumerate(chunks):
-        start = chunk.decode_start_sample
-        end = chunk.decode_end_sample
-        if end - start < int(0.1 * rate):
-            continue
-        window = audio[start:end]
-        if resolved == "mock":
-            text = _mock_transcribe_chunk(chunk.start_sec, chunk.end_sec, i)
-        else:
-            assert decode is not None
-            text = decode(window)
+    write_progress(
+        {"status": "running", "progress": 0.05, "stage": "preparing", "backend": resolved}
+    )
 
-        if text:
-            if (
-                chunk.overlaps_previous
-                and previous_index is not None
-                and previous_group == chunk.group
-                and resolved != "mock"
-            ):
-                prev = segments[previous_index]["transcription"]
-                prev, text, _trim = stitch_overlapping_text(prev, text)
-                segments[previous_index]["transcription"] = prev
+    model = None
+    decode_path: Callable[[str], str] | None = None
+    if resolved == "gigaam":
+        model = _gigaam_model(model_name, download_root)
+
+        def decode_path(path: str) -> str:  # noqa: F811
+            return _result_to_text(model.transcribe(path))
+
+    segments: list[dict[str, Any]] = []
+    mode: str
+
+    # Match VRainD/gigaamui: short official path vs fixed chunk loop.
+    if duration <= SHORT_LIMIT_SECONDS:
+        mode = "short"
+        write_progress(
+            {
+                "status": "running",
+                "progress": 0.4,
+                "stage": "transcribing",
+                "backend": resolved,
+                "mode": mode,
+            }
+        )
+        if resolved == "mock":
+            text = _mock_text(0.0, duration, 0)
+        else:
+            assert decode_path is not None
+            text = decode_path(str(audio_path))
+        segments = [{"start": 0.0, "end": round(duration, 3), "text": text}]
+        chunk_count = 1
+    else:
+        mode = "fixed_chunks"
+        chunks = plan_fixed_chunks(len(audio), sample_rate=rate, chunk_seconds=chunk_seconds)
+        chunk_count = len(chunks)
+        write_progress(
+            {
+                "status": "running",
+                "progress": 0.2,
+                "stage": "chunking",
+                "backend": resolved,
+                "chunks": chunk_count,
+                "mode": mode,
+            }
+        )
+        for chunk in chunks:
+            window = audio[chunk.start_sample : chunk.end_sample]
+            if resolved == "mock":
+                text = _mock_text(chunk.start_sec, chunk.end_sec, chunk.index)
+            else:
+                assert decode_path is not None
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = Path(tmp.name)
+                try:
+                    _write_chunk_wav(tmp_path, window, rate)
+                    text = decode_path(str(tmp_path))
+                finally:
+                    tmp_path.unlink(missing_ok=True)
             if text:
                 segments.append(
                     {
-                        "transcription": text,
-                        "boundaries": (
-                            max(0.0, float(chunk.start_sec)),
-                            min(duration, float(chunk.end_sec)),
-                        ),
+                        "start": round(chunk.start_sec, 3),
+                        "end": round(chunk.end_sec, 3),
+                        "text": text,
                     }
                 )
-                previous_index = len(segments) - 1
-                previous_group = chunk.group
-        else:
-            previous_index = None
-            previous_group = None
+            ratio = 0.2 + 0.7 * ((chunk.index + 1) / max(1, chunk_count))
+            write_progress(
+                {
+                    "status": "running",
+                    "progress": round(min(0.95, ratio), 4),
+                    "stage": "transcribing",
+                    "chunk": chunk.index + 1,
+                    "chunks": chunk_count,
+                    "backend": resolved,
+                    "mode": mode,
+                }
+            )
 
-        write_progress(float(chunk.end_sec) / duration if duration else 1.0, i)
-
+    export_segments = _segments_for_report(segments)
     report = {
         "status": "done",
         "backend": resolved,
+        "engine_source": "https://github.com/VRainD/gigaamui",
+        "mode": mode,
         "model": model_name if resolved == "gigaam" else None,
         "audio_path": str(audio_path),
         "duration_seconds": round(duration, 3),
-        "chunk_count": len(chunks),
-        "max_chunk_seconds": MAX_CHUNK_SECONDS,
+        "chunk_count": chunk_count,
+        "chunk_seconds": chunk_seconds,
+        "max_chunk_seconds": chunk_seconds,
         "target_gpu": "RTX 2060 (~6 GB)",
-        "segments": segments,
-        "text": segments_to_txt(segments).rstrip("\n"),
-        "srt": segments_to_srt(segments),
-        "vtt": segments_to_vtt(segments),
+        "segments": export_segments,
+        "text": segments_to_txt(export_segments).rstrip("\n"),
+        "srt": segments_to_srt(export_segments),
+        "vtt": segments_to_vtt(export_segments),
     }
-    if progress_path:
-        progress_path.write_text(
-            json.dumps({"status": "done", "progress": 1.0, "backend": resolved}, ensure_ascii=False),
-            encoding="utf-8",
-        )
+    write_progress(
+        {"status": "done", "progress": 1.0, "backend": resolved, "mode": mode}
+    )
     return report
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Long-form Gorizont transcription")
+    parser = argparse.ArgumentParser(description="Long-form Gorizont transcription (gigaamui engine)")
     parser.add_argument("--audio", required=True, help="PCM 16 kHz mono WAV")
     parser.add_argument(
         "--backend",
@@ -223,6 +262,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--model", default=os.environ.get("GIGAAM_MODEL", "v3_e2e_rnnt"))
     parser.add_argument("--download-root", default=os.environ.get("GIGAAM_PYTORCH_MODEL_DIR"))
+    parser.add_argument(
+        "--chunk-seconds",
+        type=float,
+        default=DEFAULT_CHUNK_SECONDS,
+        help="Long-audio chunk size (VRainD/gigaamui CHUNK_SECONDS)",
+    )
     parser.add_argument("--json-out", required=True, help="Write full result JSON")
     parser.add_argument("--progress-out", default=None, help="Optional progress JSON path")
     args = parser.parse_args(argv)
@@ -238,9 +283,10 @@ def main(argv: list[str] | None = None) -> int:
             backend=args.backend,
             model_name=args.model,
             download_root=args.download_root,
+            chunk_seconds=args.chunk_seconds,
             progress_path=Path(args.progress_out) if args.progress_out else None,
         )
-    except Exception as exc:  # pragma: no cover - surfaced to job runner
+    except Exception as exc:  # pragma: no cover
         err = {"status": "failed", "error": str(exc)}
         Path(args.json_out).write_text(json.dumps(err, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(json.dumps(err, ensure_ascii=False), file=sys.stderr)
@@ -254,6 +300,8 @@ def main(argv: list[str] | None = None) -> int:
             {
                 "event": "longform_done",
                 "backend": report["backend"],
+                "mode": report["mode"],
+                "engine_source": report["engine_source"],
                 "duration_seconds": report["duration_seconds"],
                 "chunk_count": report["chunk_count"],
                 "segments": len(report["segments"]),

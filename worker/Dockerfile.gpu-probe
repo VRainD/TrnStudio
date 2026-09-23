@@ -1,6 +1,7 @@
-# GPU probe for GigaAM (RTX 3060 Ti 16 GB target)
-# Pins mirror dubr1k/GigaAMGUI Dockerfile (CUDA 12.4 / torch 2.6.0+cu124 / GigaAM 0a3f103).
-# Does not vendor GigaAMGUI application code. Does not change Gorizont UI.
+# GPU probe for GigaAM (RTX 2060 ~6 GB acceptance target)
+# Pins mirror VRainD/gigaamui Dockerfile (CUDA 12.4 / torch 2.6.0+cu124 / GigaAM from git).
+# Engine source for long-form behavior: https://github.com/VRainD/gigaamui
+# Does not vendor gigaamui Flask UI. Does not change Gorizont UI.
 
 FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
@@ -31,19 +32,20 @@ RUN python -m pip install --upgrade pip "setuptools<81" wheel
 
 WORKDIR /app
 
-# Official cu124 trio first (same contract as GigaAMGUI).
+# Official cu124 trio (same as VRainD/gigaamui Dockerfile).
 RUN pip install --no-cache-dir \
     torch==2.6.0 torchaudio==2.6.0 torchvision==0.21.0 \
     --index-url https://download.pytorch.org/whl/cu124
 
-# Pinned GigaAM revision used by GigaAMGUI Docker builds.
+# Install CURRENT GigaAM from GitHub (same approach as VRainD/gigaamui).
+# Pin kept for reproducible probe builds; gigaamui itself installs unpinned main.
 RUN git clone https://github.com/salute-developers/GigaAM.git /tmp/gigaam \
     && cd /tmp/gigaam \
     && git checkout 0a3f1036d93287d5ef226911ec795bde8ef05d57 \
     && pip install --no-cache-dir --no-build-isolation . \
     && rm -rf /tmp/gigaam
 
-# Minimal probe deps (official short-audio path; longform/chunking comes later).
+# Probe + longform worker (longform: short ≤25s / fixed ~20s chunks per VRainD/gigaamui).
 RUN pip install --no-cache-dir \
     "numpy>=1.26,<3" \
     "soundfile>=0.12,<1" \

@@ -31,8 +31,8 @@ export function transcriptionCapabilities() {
     maxChunkSeconds: 20,
     formats: ['txt', 'srt', 'vtt'],
     note: backend === 'mock'
-      ? 'Mock ASR (нет GPU/GigaAM в этой среде). Chunking и UI-путь активны.'
-      : 'Long-form ASR через worker/longform_transcribe.py',
+      ? 'Mock ASR (нет GPU/GigaAM в этой среде). Chunking как в VRainD/gigaamui.'
+      : 'Long-form ASR (движок VRainD/gigaamui) через worker/longform_transcribe.py',
   };
 }
 
