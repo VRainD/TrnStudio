@@ -1,0 +1,2 @@
+# Dev/CI deps for longform mock path (no CUDA/GigaAM required).
+numpy>=1.26,<3
