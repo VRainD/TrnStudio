@@ -1,10 +1,10 @@
 {
   "name": "TrnStudio · Горизонт",
-  "install": "npm ci && npx playwright install chromium",
+  "install": "npm ci && npx playwright install chromium && python3 -m pip install --user -r worker/requirements-ci.txt",
   "terminals": [
     {
       "name": "studio",
-      "command": "npm start"
+      "command": "TRANSCRIBE_BACKEND=mock npm start"
     }
   ],
   "ports": [4173]
