@@ -180,7 +180,7 @@ export async function createJobFromUpload(req, mediaRoot, { title } = {}) {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
     if (error && error.code === 'INSUFFICIENT_FUNDS') {
       const err = new MediaError(
-        `Недостаточно средств на балансе. Нужно ${(error.costKopecks / 100).toFixed(2).replace('.', ',')} ₽, доступно ${(error.availableKopecks / 100).toFixed(2).replace('.', ',')} ₽.`,
+        `Недостаточно токенов на балансе. Нужно ${(error.costKopecks / 100).toFixed(2).replace('.', ',')} ток., доступно ${(error.availableKopecks / 100).toFixed(2).replace('.', ',')} ток. (1 токен = 1 ₽).`,
       );
       err.code = 'INSUFFICIENT_FUNDS';
       throw err;

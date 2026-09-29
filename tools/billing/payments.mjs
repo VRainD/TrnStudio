@@ -1,17 +1,24 @@
 /**
  * PaymentProvider interface + drivers (stub | yookassa | yoomoney).
  *
- * Naming:
- * - YooKassa (ЮKassa) — acquiring shop (SPEC default candidate).
- * - YooMoney (ЮMoney) — wallet API; often confused with YooKassa in speech («Юмани»).
+ * Locked product path (2026-09-29):
+ * - Preferred online top-up: PAYMENT_DRIVER=yoomoney (ЮMoney + касса / fiscal cabinet path).
+ * - YooKassa remains an alternate acquiring adapter.
+ * - On payment success: credit tokens 1:1 with paid RUB
+ *   (credit_kopecks = amount_rub * 100; 1 display token = 1 ₽).
+ * - Fiscal receipts: separate FiscalProvider (phase D); wire through ЮMoney касса
+ *   once owner secrets/cabinet details arrive — do not mix with PaymentProvider.
  *
  * No real HTTP charges without secrets. Feature flag / driver default = stub.
  */
 import { randomUUID } from 'node:crypto';
 import { withBillingLock, demoUserId, pushAudit } from './store.mjs';
+import { rubToTokenMinor, kopecksToTokenDisplay, TOKEN_MINOR_UNITS } from './cost.mjs';
 import { creditWallet } from './wallet.mjs';
 
 export const TOPUP_PRESETS_RUB = [100, 300, 1000];
+/** Preferred driver when owner enables online payments + касса. */
+export const PREFERRED_PAYMENT_DRIVER = 'yoomoney';
 
 export function paymentDriverName() {
   const d = String(process.env.PAYMENT_DRIVER || 'stub').toLowerCase();
@@ -68,7 +75,8 @@ function stubProvider(name = 'stub') {
         amountKopecks: input.amountKopecks,
         currency: input.currency || 'RUB',
         confirmationUrl: null,
-        message: 'Онлайн-оплата не подключена (stub). Используйте admin credit или задайте секреты.',
+        message: 'Онлайн-оплата не подключена (stub). Используйте admin credit или задайте секреты ЮMoney.',
+        creditRule: '1_token_per_rub',
       };
     },
     async getStatus(providerPaymentId) {
@@ -90,8 +98,7 @@ function stubProvider(name = 'stub') {
 }
 
 /**
- * YooKassa-shaped adapter. Without network call until secrets exist;
- * createPayment refuses if not configured (caller should use stub).
+ * YooKassa-shaped adapter (alternate). Without network call until secrets exist.
  */
 function yookassaProvider() {
   const shopId = process.env.YOOKASSA_SHOP_ID;
@@ -99,7 +106,6 @@ function yookassaProvider() {
   return {
     name: 'yookassa',
     async createPayment(input) {
-      // Real HTTP integration is follow-up (Phase C). Keep interface stable.
       if (!shopId || !secret) return stubProvider('yookassa-unconfigured').createPayment(input);
       return {
         provider: 'yookassa',
@@ -110,6 +116,7 @@ function yookassaProvider() {
         confirmationUrl: null,
         message: 'YooKassa driver selected; live HTTP create is not enabled in this build. See docs/PAYMENTS.md.',
         shopId,
+        creditRule: '1_token_per_rub',
       };
     },
     async getStatus(providerPaymentId) {
@@ -127,6 +134,10 @@ function yookassaProvider() {
   };
 }
 
+/**
+ * YooMoney provider (preferred). Payment + fiscal касса path documented in PAYMENTS.md;
+ * FiscalProvider remains phase D (cabinet / related API — secrets from owner).
+ */
 function yoomoneyProvider() {
   const account = process.env.YOOMONEY_ACCOUNT;
   return {
@@ -142,8 +153,10 @@ function yoomoneyProvider() {
         amountKopecks: input.amountKopecks,
         currency: 'RUB',
         confirmationUrl: null,
-        message: 'YooMoney wallet driver selected; live HTTP create is not enabled in this build. See docs/PAYMENTS.md.',
+        message: 'YooMoney driver selected (preferred + касса). Live HTTP create awaits secrets. See docs/PAYMENTS.md.',
         account,
+        fiscalNote: 'FiscalProvider / касса via ЮMoney cabinet — phase D; not mixed into PaymentProvider.',
+        creditRule: '1_token_per_rub',
       };
     },
     async getStatus(providerPaymentId) {
@@ -162,31 +175,39 @@ function yoomoneyProvider() {
 
 /**
  * Record a top-up payment intent (does not credit until webhook/reconcile).
+ * amountRub maps 1:1 to tokens on success (stored as amountRub * 100 minor units).
  */
 export async function createTopupPayment({
   userId = demoUserId(),
   amountRub,
   idempotenceKey,
-  description = 'Пополнение баланса Горизонт',
+  description = 'Пополнение токенов Горизонт (1 токен = 1 ₽)',
 }) {
   const amount = Number(amountRub);
   if (![100, 300, 1000].includes(amount) && !(Number.isInteger(amount) && amount >= 100 && amount <= 100_000)) {
-    throw new Error('Сумма пополнения: 100, 300, 1000 ₽ или целое от 100 до 100 000.');
+    throw new Error('Сумма пополнения: 100, 300, 1000 ₽ (= токены 1:1) или целое от 100 до 100 000.');
   }
-  const amountKopecks = amount * 100;
+  const amountKopecks = rubToTokenMinor(amount);
   const key = idempotenceKey || `payment:topup:${userId}:${amountKopecks}:${randomUUID()}`;
   const provider = createPaymentProvider();
 
   return withBillingLock(async (db) => {
     const existing = db.payments.find((p) => p.idempotenceKey === key);
-    if (existing) return { idempotent: true, payment: existing, providerResult: null };
+    if (existing) {
+      return {
+        idempotent: true,
+        payment: existing,
+        providerResult: null,
+        creditTokensOnSuccess: kopecksToTokenDisplay(existing.amountKopecks),
+      };
+    }
 
     const providerResult = await provider.createPayment({
       amountKopecks,
       currency: 'RUB',
       idempotenceKey: key,
       description,
-      returnUrl: process.env.YOOKASSA_RETURN_URL || process.env.YOOMONEY_RETURN_URL || null,
+      returnUrl: process.env.YOOMONEY_RETURN_URL || process.env.YOOKASSA_RETURN_URL || null,
       userId,
     });
 
@@ -194,7 +215,9 @@ export async function createTopupPayment({
       id: randomUUID(),
       userId,
       amountKopecks,
+      amountTokens: kopecksToTokenDisplay(amountKopecks),
       currency: 'RUB',
+      creditRule: '1_token_per_rub',
       status: providerResult.status || 'pending',
       provider: providerResult.provider,
       providerPaymentId: providerResult.providerPaymentId,
@@ -209,15 +232,27 @@ export async function createTopupPayment({
       actorId: userId,
       entityType: 'payment',
       entityId: payment.id,
-      detail: { provider: payment.provider, amountKopecks, status: payment.status },
+      detail: {
+        provider: payment.provider,
+        amountKopecks,
+        amountTokens: payment.amountTokens,
+        status: payment.status,
+        creditRule: '1_token_per_rub',
+      },
     });
-    return { idempotent: false, payment, providerResult };
+    return {
+      idempotent: false,
+      payment,
+      providerResult,
+      creditTokensOnSuccess: payment.amountTokens,
+    };
   });
 }
 
 /**
- * Webhook reconcile stub: only credits when explicitly marked succeeded
- * and secrets path is used in future. Safe no-op for unknown providers.
+ * Webhook reconcile: on succeeded, credit tokens 1:1 with paid RUB
+ * (ledger minor units = payment.amountKopecks = amount_rub * 100).
+ * Idempotent on provider + provider_payment_id / ledger business_key.
  */
 export async function reconcilePaymentWebhook({ provider, providerPaymentId, status }) {
   if (status !== 'succeeded') {
@@ -228,28 +263,41 @@ export async function reconcilePaymentWebhook({ provider, providerPaymentId, sta
       (p) => p.provider === provider && p.providerPaymentId === providerPaymentId,
     );
     if (!payment) return { credited: false, reason: 'unknown_payment' };
-    if (payment.status === 'succeeded') return { credited: false, reason: 'already_succeeded', payment };
+    if (payment.status === 'succeeded') {
+      return {
+        credited: false,
+        reason: 'already_succeeded',
+        payment,
+        creditTokens: kopecksToTokenDisplay(payment.amountKopecks),
+      };
+    }
 
-    // Credit outside would nest locks; do inline like promos.
     const businessKey = `credit:payment:${payment.id}`;
     if (db.ledger.some((e) => e.businessKey === businessKey)) {
       payment.status = 'succeeded';
-      return { credited: false, reason: 'already_credited', payment };
+      return {
+        credited: false,
+        reason: 'already_credited',
+        payment,
+        creditTokens: kopecksToTokenDisplay(payment.amountKopecks),
+      };
     }
     let w = db.wallets.find((x) => x.userId === payment.userId);
     if (!w) {
       w = { userId: payment.userId, balanceKopecks: 0, updatedAt: new Date().toISOString() };
       db.wallets.push(w);
     }
+    // 1:1: amount already stored as amount_rub * TOKEN_MINOR_UNITS at create time.
     w.balanceKopecks += payment.amountKopecks;
     w.updatedAt = new Date().toISOString();
+    const creditTokens = kopecksToTokenDisplay(payment.amountKopecks);
     db.ledger.push({
       id: randomUUID(),
       userId: payment.userId,
       type: 'credit',
       amountKopecks: payment.amountKopecks,
       businessKey,
-      reason: `Пополнение ${payment.provider}`,
+      reason: `Пополнение ${payment.provider} (+${creditTokens} ток., 1:1)`,
       promoId: null,
       bonusKopecks: null,
       jobId: null,
@@ -262,17 +310,26 @@ export async function reconcilePaymentWebhook({ provider, providerPaymentId, sta
       actorId: payment.userId,
       entityType: 'payment',
       entityId: payment.id,
-      detail: { amountKopecks: payment.amountKopecks },
+      detail: {
+        amountKopecks: payment.amountKopecks,
+        creditTokens,
+        creditRule: '1_token_per_rub',
+        minorPerToken: TOKEN_MINOR_UNITS,
+      },
     });
-    return { credited: true, payment };
+    return { credited: true, payment, creditTokens, creditRule: '1_token_per_rub' };
   });
 }
 
 export function paymentStatusPublic() {
   return {
     driver: paymentDriverName(),
+    preferredDriver: PREFERRED_PAYMENT_DRIVER,
     configured: paymentsConfigured(),
     presetsRub: TOPUP_PRESETS_RUB,
+    creditRule: '1_token_per_rub',
+    tokenUnit: { tokensPerRub: 1, minorPerToken: TOKEN_MINOR_UNITS },
+    fiscalNote: 'Касса / FiscalProvider via ЮMoney cabinet — phase D; PaymentProvider does not issue receipts.',
     webhookPaths: {
       yookassa: '/api/webhooks/yookassa',
       yoomoney: '/api/webhooks/yoomoney',
@@ -280,5 +337,5 @@ export function paymentStatusPublic() {
   };
 }
 
-// silence unused import lint if creditWallet unused in this file path
+// creditWallet kept available for admin/local paths; webhook uses inline credit for lock atomicity.
 void creditWallet;

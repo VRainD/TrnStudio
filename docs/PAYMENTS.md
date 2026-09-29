@@ -1,36 +1,55 @@
-# Платежи: ЮKassa / ЮMoney (Горизонт)
+# Платежи: ЮMoney (+ касса) / ЮKassa (Горизонт)
 
-Онлайн-эквайринг **не обязателен** для локальной студии. По умолчанию `PAYMENT_DRIVER=stub` и `BILLING_ENABLED=false`: стоимость job считается и пишется в meta, списаний нет. При `BILLING_ENABLED=true` нужны available ≥ quote; баланс начисляется admin credit / промокодом.
+Онлайн-эквайринг **не обязателен** для локальной студии. По умолчанию `PAYMENT_DRIVER=stub` и `BILLING_ENABLED=false`: стоимость job считается и пишется в meta, списаний нет. При `BILLING_ENABLED=true` нужны available ≥ quote; баланс начисляется admin credit / промокодом / успешным платежом.
 
-См. также чеклист владельца (вне репозитория / в Project store): `yoomoney-handoff.md`.
+См. также чеклист владельца (Project store): `yoomoney-handoff.md`.
 
-## ЮKassa vs ЮMoney
+## Зачёт в токены 1∶1 (зафиксировано)
+
+| Понятие | Значение |
+|---|---|
+| Display | **токены** (экран «Баланс») |
+| Курс | **1 токен = 1 ₽** face value |
+| Ledger | целые **minor units** (= копейки): `1 токен = 100 minor` |
+| Пополнение | `credit_tokens = amount_rub` → `credit_kopecks = amount_rub * 100` |
+| Тариф | **0,06 ток./мин** (= 0,06 ₽/мин, R = 6 minor/мин) |
+| Промо | бонусы в тех же minor / токенах |
+
+Пример: оплата **100 ₽** → зачисление **100 токенов** (10 000 minor). Повтор webhook не зачисляет дважды.
+
+## Предпочтительный провайдер
+
+**`PAYMENT_DRIVER=yoomoney`** — ЮMoney: приём оплаты + путь **кассы** (фискализация через кабинет / связанный FiscalProvider, фаза D). ЮKassa остаётся альтернативным слотом эквайринга.
 
 | Env `PAYMENT_DRIVER` | Сервис | Секреты |
 |---|---|---|
-| `stub` | Нет сети | — |
-| `yookassa` | **ЮKassa** (магазин / эквайринг) | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` |
-| `yoomoney` | **ЮMoney** (кошелёк) | `YOOMONEY_ACCOUNT`, `YOOMONEY_OAUTH_TOKEN` |
+| `stub` | Нет сети (по умолчанию) | — |
+| `yoomoney` | **ЮMoney** (предпочтительно) + касса отдельно | `YOOMONEY_ACCOUNT`, `YOOMONEY_OAUTH_TOKEN`, (опц.) notification secret |
+| `yookassa` | **ЮKassa** (альтернатива) | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY` |
 
-Интерфейс кода: `tools/billing/payments.mjs` → `PaymentProvider` (`createPayment`, `getStatus`, `refund`). Без секретов драйвер деградирует в stub — **реальных списаний нет**.
+Интерфейс: `tools/billing/payments.mjs` → `PaymentProvider` (`createPayment`, `getStatus`, `refund`). Без секретов драйвер деградирует в stub — **реальных списаний нет**.
+
+`FiscalProvider` **не** смешивать с `PaymentProvider`. Чеки — фаза D по маршруту кассы ЮMoney.
 
 ## Webhook URL (нужен публичный HTTPS)
 
-- ЮKassa: `POST https://<host>/api/webhooks/yookassa`
 - ЮMoney: `POST https://<host>/api/webhooks/yoomoney`
+- ЮKassa: `POST https://<host>/api/webhooks/yookassa`
 
-Redirect после оплаты **не** доказывает успех; зачисление — только после reconcile статуса у провайдера (идемпотентно по `provider` + `provider_payment_id`).
+Redirect после оплаты **не** доказывает успех; зачисление токенов — только после reconcile (`status=succeeded`), идемпотентно по `provider` + `provider_payment_id`.
 
 ## Локальный баланс без эквайринга
 
 ```bash
 node tools/billing/admin-cli.mjs credit --amount-rub 100 --reason "тест"
+# → +100 токенов (10 000 minor)
 node tools/billing/admin-cli.mjs promo-create --code WELCOME50 --type bonus_credit --bonus-kopecks 5000
+# → +50 токенов
 BILLING_ENABLED=true npm start
 ```
 
-Хранилище MVP: **файловый ledger** `BILLING_ROOT` / `.local-billing/ledger.json` (не PostgreSQL). Выбор зафиксирован, пока PG не в стеке preview.
+Хранилище MVP: **файловый ledger** `BILLING_ROOT` / `.local-billing/ledger.json` (не PostgreSQL).
 
-## Фискализация
+## Фискализация / касса
 
-Отдельный `FiscalProvider` (фаза D). Не смешивать с `PaymentProvider`. «Чеки от ЮKassa» / касса «Юмани» — уточнить у владельца до live.
+Отдельный `FiscalProvider` (фаза D). Зафиксированный маршрут: **касса через ЮMoney** (кабинет / связанный API владельца). Не подключать автоматически «Чеки от ЮKassa», пока владелец не подтвердит иное. `PAYMENT_DRIVER=yoomoney` готовит слот оплаты; чеки — после secrets + схемы НДС/СНО.

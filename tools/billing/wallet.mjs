@@ -1,12 +1,15 @@
 /**
  * Wallet + ledger + holds (SPEC §5, plan §3.2–3.3).
- * Amounts are bigint-style integers (JS number, whole kopecks only).
+ * Amounts are bigint-style integers (JS number, whole kopecks / token-minor only).
+ * Display unit: tokens where 1 token = 1 ₽ = 100 minor units.
  */
 import { randomUUID } from 'node:crypto';
 import {
   withBillingLock, demoUserId, pushAudit, billingEnabled,
 } from './store.mjs';
-import { quoteCost, QUOTE_TTL_MS, costSnapshotFromSeconds } from './cost.mjs';
+import {
+  quoteCost, QUOTE_TTL_MS, costSnapshotFromSeconds, kopecksToTokenDisplay, TOKEN_MINOR_UNITS,
+} from './cost.mjs';
 
 function walletOf(db, userId) {
   let w = db.wallets.find((x) => x.userId === userId);
@@ -47,13 +50,20 @@ export async function getWalletView(userId = demoUserId()) {
   return withBillingLock((db) => {
     const w = walletOf(db, userId);
     const held = activeHoldsSum(db, userId);
+    const available = w.balanceKopecks - held;
     return {
       userId,
       balanceKopecks: w.balanceKopecks,
       heldKopecks: held,
-      availableKopecks: w.balanceKopecks - held,
+      availableKopecks: available,
+      /** Spendable tokens (1 token = 1 ₽); same scale as kopecks/100. */
+      balanceTokens: kopecksToTokenDisplay(w.balanceKopecks),
+      heldTokens: kopecksToTokenDisplay(held),
+      availableTokens: kopecksToTokenDisplay(available),
+      tokenUnit: { tokensPerRub: 1, minorPerToken: TOKEN_MINOR_UNITS },
       billingEnabled: billingEnabled(),
       currency: 'RUB',
+      displayUnit: 'tokens',
     };
   });
 }

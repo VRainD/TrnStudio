@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Биллинг MVP (фазы A–B+): серверный quote/cost (копейки), снимок цены в job meta, файловый ledger (кошелёк / holds / журнал), промокоды `bonus_credit`, экран «Баланс» на API, admin CLI. `PaymentProvider` stub + слоты ЮKassa/ЮMoney без реальных списаний. См. [docs/PAYMENTS.md](docs/PAYMENTS.md).
+- Токены 1∶1 с ₽: экран «Баланс» показывает токены; ledger — minor units (копейки); `1 токен = 1 ₽ = 100 minor`. Успешный платёж зачисляет `amount_rub` токенов. Предпочтительный драйвер `PAYMENT_DRIVER=yoomoney` (+ касса / FiscalProvider фаза D). См. [docs/PAYMENTS.md](docs/PAYMENTS.md).
+- Биллинг MVP (фазы A–B+): серверный quote/cost (копейки), снимок цены в job meta, файловый ledger (кошелёк / holds / журнал), промокоды `bonus_credit`, экран «Баланс» на API, admin CLI. `PaymentProvider` stub + слоты ЮMoney/ЮKassa без реальных списаний.
 - Compose-профиль `gpu-probe`: образ с pinned CUDA 12.4 / PyTorch 2.6.0+cu124 / GigaAM `0a3f103`, скрипт `worker/probe_transcribe.py` для замера VRAM/RTF на целевой **RTX 3060 Ti 16 ГБ**.
 - Документация: [docs/GPU_PROBE.md](docs/GPU_PROBE.md). UI Горизонта не изменён; LICENSE не трогали.
 

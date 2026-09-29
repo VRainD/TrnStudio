@@ -2,16 +2,20 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { quoteCost, costSnapshotFromSeconds, formatRub } from './billing/cost.mjs';
+import { quoteCost, costSnapshotFromSeconds, formatRub, formatTokens, rubToTokenMinor, kopecksToTokenDisplay } from './billing/cost.mjs';
 import { creditWallet, getWalletView, reserveForJob, captureHoldForJob, releaseHoldForJob } from './billing/wallet.mjs';
 import { createPromo, redeemPromo, validatePromo } from './billing/promos.mjs';
-import { createPaymentProvider, paymentStatusPublic, createTopupPayment } from './billing/payments.mjs';
+import {
+  createPaymentProvider, paymentStatusPublic, createTopupPayment, reconcilePaymentWebhook,
+  PREFERRED_PAYMENT_DRIVER,
+} from './billing/payments.mjs';
 
 // --- Phase A: SPEC §5 examples ---
 {
   const oneSec = quoteCost({ durationSeconds: 1 });
   assert.equal(oneSec.costKopecks, 1, '1s → 0,01 ₽');
   assert.equal(formatRub(oneSec.costKopecks), '0,01 ₽');
+  assert.equal(formatTokens(oneSec.costKopecks), '0,01 ток.');
 
   const sixtyOne = quoteCost({ durationSeconds: 61 });
   assert.equal(sixtyOne.costKopecks, 7, '61s → 0,07 ₽');
@@ -25,7 +29,12 @@ import { createPaymentProvider, paymentStatusPublic, createTopupPayment } from '
   // Integer samples path: 16000 samples = 1s
   assert.equal(quoteCost({ durationSamples: 16_000 }).costKopecks, 1);
   assert.equal(costSnapshotFromSeconds(61).cost_kopecks, 7);
-  console.log('PASS cost formula SPEC examples');
+
+  // Token unit: 1 token = 1 ₽ = 100 minor
+  assert.equal(rubToTokenMinor(100), 10_000);
+  assert.equal(kopecksToTokenDisplay(10_000), 100);
+  assert.equal(rubToTokenMinor(1), 100);
+  console.log('PASS cost formula SPEC examples + token unit');
 }
 
 // Isolated billing root for wallet/promo tests
@@ -117,17 +126,41 @@ try {
   assert.equal(secondUserBlock, true);
   console.log('PASS promo redeem idempotent');
 
-  // Payments stub — force stub driver for this test
+  // Payments stub + 1:1 token credit on webhook success
   process.env.PAYMENT_DRIVER = 'stub';
   const provider = createPaymentProvider();
   assert.ok(provider.name === 'stub' || provider.name.includes('stub'));
   const topup = await createTopupPayment({ amountRub: 300, idempotenceKey: 'qa:pay:300' });
   assert.equal(topup.payment.amountKopecks, 30_000);
+  assert.equal(topup.creditTokensOnSuccess, 300);
   assert.equal(topup.payment.status, 'pending');
   const status = paymentStatusPublic();
   assert.equal(status.driver, 'stub');
+  assert.equal(status.preferredDriver, PREFERRED_PAYMENT_DRIVER);
+  assert.equal(status.preferredDriver, 'yoomoney');
+  assert.equal(status.creditRule, '1_token_per_rub');
   assert.equal(status.configured, false);
-  console.log('PASS payment stub');
+
+  const beforePay = await getWalletView();
+  const creditedPay = await reconcilePaymentWebhook({
+    provider: topup.payment.provider,
+    providerPaymentId: topup.payment.providerPaymentId,
+    status: 'succeeded',
+  });
+  assert.equal(creditedPay.credited, true);
+  assert.equal(creditedPay.creditTokens, 300);
+  const afterPay = await getWalletView();
+  assert.equal(afterPay.balanceKopecks, beforePay.balanceKopecks + 30_000);
+  assert.equal(afterPay.balanceTokens, beforePay.balanceTokens + 300);
+
+  const againPay = await reconcilePaymentWebhook({
+    provider: topup.payment.provider,
+    providerPaymentId: topup.payment.providerPaymentId,
+    status: 'succeeded',
+  });
+  assert.equal(againPay.credited, false);
+  assert.ok(againPay.reason === 'already_succeeded' || againPay.reason === 'already_credited');
+  console.log('PASS payment stub + token credit 1:1');
 } finally {
   if (prevRoot === undefined) delete process.env.BILLING_ROOT;
   else process.env.BILLING_ROOT = prevRoot;

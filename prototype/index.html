@@ -20,7 +20,7 @@ aside{background:linear-gradient(180deg,#0b122c,#090f25);border-color:#6c9bd61c}
 <main><header><div class="crumb">Рабочее пространство / <span id="breadcrumb">Студия</span></div><span class="tag">ЛОКАЛЬНАЯ СТУДИЯ · PREVIEW</span></header>
 <section id="studio" class="view"><div class="hero"><div class="orbit" aria-hidden="true"></div><div class="copy"><div class="eyebrow">ВАШ ГОЛОС. НОВАЯ ФОРМА.</div><h1>Из звука<br>в пространство смысла.</h1><p>Интервью, видеовстречи и голосовые заметки.<br>Распознайте длинную запись. Сохраните каждую мысль.</p></div></div><div class="grid"><div class="card"><div class="title"><h2>Начните с вашей записи</h2><span class="tag">01 / ЗАГРУЗКА</span></div><div class="source-types"><span class="source-type"><em>≋</em> Аудиозапись</span><span class="source-type"><em>▷</em> Видео</span><span class="source-type"><em>◈</em> Яндекс Телемост</span></div><button class="drop" id="drop"><span class="sound-mark" aria-hidden="true"><i style="height:10px"></i><i style="height:18px"></i><i style="height:30px"></i><i style="height:22px"></i><i style="height:38px"></i><i style="height:16px"></i><i style="height:28px"></i><i style="height:42px"></i><i style="height:24px"></i><i style="height:16px"></i><i style="height:32px"></i><i style="height:20px"></i><i style="height:10px"></i></span><strong>Дайте звуку новую форму</strong><span>Перетащите аудио или видео · либо выберите файл</span></button><input id="file" type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.aiff,.aif,.wma,.mp4,.webm,.webv,.mov,.mkv,.avi,.m4v" hidden><div class="format-list"><span>MP3</span><span>WAV</span><span>M4A</span><span>AAC</span><span>OGG</span><span>OPUS</span><span>FLAC</span><span>AIFF</span><span>WMA</span><span>MP4</span><span>WEBM</span><span>MOV</span><span>MKV</span><span>AVI</span></div><div class="telemost-note"><span style="font-size:20px">◈</span><div><b>Запись из Телемоста? Просто перенесите файл.</b><br>WebM поддерживается. Звук можно извлечь отдельно от видео.</div></div><div class="detail"><span>До 1 ГБ · до 4 часов</span><span>Русский язык</span></div><div id="selected" hidden><div class="divider"></div><div class="media-heading"><div><b id="selectedName"></b><div id="sourceMeta" class="source-meta"></div></div><span id="sourceBadge" class="tag">МЕДИА</span></div><div class="preview-label">ПРОСЛУШИВАНИЕ ИСХОДНОГО ФАЙЛА · ЕСЛИ ПОДДЕРЖИВАЕТСЯ БРАУЗЕРОМ</div><audio id="player" controls preload="metadata"></audio><div class="detail"><span>Предварительная длительность</span><b id="duration">Определяем…</b></div><div class="detail"><span>Стоимость по тарифу</span><b id="filePrice">—</b></div><div class="extract-actions"><button id="extract" class="primary" disabled>Распознать запись ↗</button></div><div id="mediaStatus" class="media-status" role="status" aria-live="polite">Выберите файл для локальной транскрибации.</div><div id="audioResult" class="result-audio" hidden><strong id="jobProgressLabel">Распознавание…</strong><div class="detail"><span>Прогресс</span><b id="jobProgress">0%</b></div><p class="fine">Длинные записи режутся на фрагменты ~20 с (как в VRainD/gigaamui), короткие ≤25 с идут одним проходом.</p></div><p class="fine">Обработка на этом компьютере: извлечение звука и распознавание длинного аудио/видео. Запись не уходит во внешние облака ASR.</p></div><div class="workflow"><div><div class="number">01 / ИСТОЧНИК</div><b>Аудио или видео</b><span>Один файл — один сценарий</span></div><div><div class="number">02 / РАСПОЗНАВАНИЕ</div><b>Длинная запись</b><span>Чанки ~20 с · локальный ASR</span></div><div><div class="number">03 / ТЕКСТ</div><b>Транскрипт</b><span>TXT · SRT · VTT</span></div></div></div><div class="card"><div class="eyebrow">ПРОСТАЯ АРИФМЕТИКА</div><div style="margin-top:17px" class="price">0,06 ₽ <small>/ минута аудио</small></div><p class="muted" style="font-size:12px">Только длительность записи.<br>Без подписки и скрытых пакетов.</p><div class="divider"></div><div class="detail"><span>Шаг тарификации</span><b>1 секунда</b></div><div class="detail"><span>Списание</span><b>После результата</b></div><button class="full primary" id="example">Посмотреть пример результата ↗</button><p class="fine">3,60 ₽ за час записи. Оплата пока не подключена.</p></div></div><div class="section"><div class="title"><h2>Последние записи <span class="tag">ПРИМЕРЫ</span></h2><button data-view="records">Все записи ↗</button></div><div id="recent"></div></div></section>
 <section id="records" class="view" hidden><div class="hero"><div class="eyebrow">БИБЛИОТЕКА</div><h1>Ничего не теряется.</h1><p>Записи и результаты в одном пространстве.</p></div><label for="search">Поиск по названию</label><input id="search" placeholder="Найти запись…"><div id="allRecords" class="section"></div><p class="fine">Здесь представлены демонстрационные записи.</p></section>
-<section id="wallet" class="view" hidden><div class="hero"><div class="eyebrow">БАЛАНС И ИСПОЛЬЗОВАНИЕ</div><h1>Платите за время.<br>Сохраняйте главное.</h1><p>Предоплата за минуты. Пополнение и промокод — через локальный API студии.</p></div><div class="grid"><div class="card"><h2>Баланс</h2><div class="metrics"><div><span class="muted">Доступно</span><b id="walletAvailable">—</b></div><div><span class="muted">В резерве</span><b id="walletHeld">—</b></div><div><span class="muted">Всего</span><b id="walletTotal">—</b></div></div><div class="amounts"><button data-amount="100">100 ₽</button><button data-amount="300">300 ₽</button><button data-amount="1000">1 000 ₽</button></div><label for="topup">Сумма пополнения, ₽</label><input type="number" id="topup" min="100" max="100000" value="300"><label for="promoCode">Промокод</label><input type="text" id="promoCode" placeholder="Если есть" autocomplete="off" spellcheck="false"><div class="rowactions" style="margin-top:12px"><button type="button" id="promoApply">Применить промокод</button></div><p class="fine" id="promoPreview"></p><button class="primary full" id="pay" style="margin-top:16px">Пополнить баланс</button><p class="fine" id="payHint">Онлайн-оплата (ЮKassa / ЮMoney) — по секретам в env; иначе stub. Локально: admin credit.</p><div class="divider"></div><h2>История</h2><div id="walletTx" class="section"></div></div><div class="card"><h2>Калькулятор стоимости</h2><div class="two"><div><label for="minutes">Минуты</label><input id="minutes" type="number" value="17" min="0" max="240"></div><div><label for="seconds">Секунды</label><input id="seconds" type="number" value="42" min="0" max="59"></div></div><div class="divider"></div><span class="muted">За вашу запись</span><div class="price" id="calc">1,07 ₽</div><p class="fine">Серверная формула (целые копейки). Максимум — 4 часа.</p></div></div></section>
+<section id="wallet" class="view" hidden><div class="hero"><div class="eyebrow">БАЛАНС И ИСПОЛЬЗОВАНИЕ</div><h1>Платите за время.<br>Сохраняйте главное.</h1><p>Предоплата токенами. 1 токен = 1 ₽. Пополнение и промокод — через локальный API студии.</p></div><div class="grid"><div class="card"><h2>Баланс · токены</h2><p class="fine" style="margin-top:0">1 токен = 1 ₽ · тариф 0,06 ток./мин</p><div class="metrics"><div><span class="muted">Доступно</span><b id="walletAvailable">—</b></div><div><span class="muted">В резерве</span><b id="walletHeld">—</b></div><div><span class="muted">Всего</span><b id="walletTotal">—</b></div></div><div class="amounts"><button data-amount="100">100 ток.</button><button data-amount="300">300 ток.</button><button data-amount="1000">1 000 ток.</button></div><label for="topup">Пополнение, токены (= ₽ 1:1)</label><input type="number" id="topup" min="100" max="100000" value="300"><label for="promoCode">Промокод</label><input type="text" id="promoCode" placeholder="Если есть" autocomplete="off" spellcheck="false"><div class="rowactions" style="margin-top:12px"><button type="button" id="promoApply">Применить промокод</button></div><p class="fine" id="promoPreview"></p><button class="primary full" id="pay" style="margin-top:16px">Пополнить токены</button><p class="fine" id="payHint">Онлайн: ЮMoney + касса (PAYMENT_DRIVER=yoomoney). Без секретов — stub; локально: admin credit. Зачисление 1:1.</p><div class="divider"></div><h2>История</h2><div id="walletTx" class="section"></div></div><div class="card"><h2>Калькулятор стоимости</h2><div class="two"><div><label for="minutes">Минуты</label><input id="minutes" type="number" value="17" min="0" max="240"></div><div><label for="seconds">Секунды</label><input id="seconds" type="number" value="42" min="0" max="59"></div></div><div class="divider"></div><span class="muted">За вашу запись</span><div class="price" id="calc">1,07 ток.</div><p class="fine">Серверная формула (целые доли токена). 1 токен = 1 ₽. Максимум — 4 часа.</p></div></div></section>
 <section id="settings" class="view" hidden><div class="hero"><div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</div><h1>Всё под вашим контролем.</h1><p>Предпросмотр настроек будущего аккаунта.</p></div><div class="card mini"><h2>Профиль и безопасность</h2><label for="name">Имя</label><input id="name" value="Владимир" maxlength="80"><label for="email">Email · демонстрационный</label><input id="email" value="demo@example.com" readonly><div class="notice">В продукте: подтверждение email, защищённые сессии, восстановление пароля и выход со всех устройств.</div><button id="save">Сохранить имя в макете</button><div class="divider"></div><h2>Хранение записей</h2><div class="detail"><span>Исходное аудио</span><b>7 дней</b></div><div class="detail"><span>Транскрипты</span><b>30 дней</b></div><p class="fine">Настройки макета не создают аккаунт и не сохраняются после перезагрузки.</p></div></section>
 <section id="editor" class="view" hidden><div class="hero"><div class="eyebrow" id="editorEyebrow">РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ</div><h1 id="editorTitle">Интервью о будущем</h1><p id="editorLead">Текст записи. Можно отредактировать и скачать.</p></div><div class="card"><div class="title"><h2>Транскрипт</h2><div class="rowactions"><button id="copy">Копировать</button><button id="exportSrt">SRT ↓</button><button id="exportVtt">VTT ↓</button><button class="primary" id="export">TXT ↓</button></div></div><label for="transcript">Текст записи</label><textarea id="transcript"></textarea><p class="fine" id="editorFine">После распознавания здесь появится текст вашей записи. Изменения хранятся до перезагрузки страницы.</p></div></section>
 <footer class="footer"><span>ГОРИЗОНТ / АВТОНОМНАЯ ТРАНСКРИБАЦИЯ</span><span>Дизайн-концепция · 2026</span></footer></main></div><div class="toast" role="status" aria-live="polite" id="toast"></div>
@@ -32,6 +32,7 @@ function notify(message){$('toast').textContent=message;clearTimeout(toastTimer)
 const RATE_KOPECKS_PER_MINUTE=6;
 const costKopecks=seconds=>Math.ceil(Math.round(seconds*16000)*RATE_KOPECKS_PER_MINUTE/(16000*60));
 const rub=kopecks=>(kopecks/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₽';
+const tokens=kopecks=>(kopecks/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' ток.';
 const apiHeaders={'X-Gorizont-Client':'local-preview','Content-Type':'application/json'};
 let serverQuoteCache=new Map();
 async function serverQuote(seconds){
@@ -98,21 +99,21 @@ async function refreshWallet(){
    fetch('/api/wallet').then(r=>r.json()),
    fetch('/api/wallet/transactions').then(r=>r.json())
   ]);
-  $('walletAvailable').textContent=rub(w.availableKopecks);
-  $('walletHeld').textContent=rub(w.heldKopecks);
-  $('walletTotal').textContent=rub(w.balanceKopecks);
+  $('walletAvailable').textContent=tokens(w.availableKopecks);
+  $('walletHeld').textContent=tokens(w.heldKopecks);
+  $('walletTotal').textContent=tokens(w.balanceKopecks);
   const root=$('walletTx');root.replaceChildren();
   const items=tx.items||[];
-  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Пока нет операций. Начислите баланс через admin CLI или промокод.';root.append(p)}
+  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Пока нет операций. Начислите токены через admin CLI или промокод.';root.append(p)}
   else{
    const table=document.createElement('table');table.className='table';
-   table.innerHTML='<thead><tr><th>Тип</th><th>Сумма</th><th>Комментарий</th></tr></thead>';
+   table.innerHTML='<thead><tr><th>Тип</th><th>Токены</th><th>Комментарий</th></tr></thead>';
    const body=document.createElement('tbody');
    items.slice(0,12).forEach(e=>{
     const tr=document.createElement('tr');
     tr.innerHTML='<td></td><td></td><td class="muted"></td>';
     tr.children[0].textContent=e.type;
-    tr.children[1].textContent=(e.type==='debit'?'−':'+')+rub(e.amountKopecks);
+    tr.children[1].textContent=(e.type==='debit'?'−':'+')+tokens(e.amountKopecks);
     tr.children[2].textContent=e.reason||e.businessKey||'';
     body.append(tr);
    });
@@ -120,9 +121,10 @@ async function refreshWallet(){
   }
   const pay=await fetch('/api/payments/status').then(r=>r.json()).catch(()=>null);
   if(pay){
+   const unit=' · 1 токен = 1 ₽';
    $('payHint').textContent=pay.configured
-    ?('Провайдер: '+pay.driver+' · онлайн-оплата настроена.')
-    :('Провайдер: '+(pay.driver||'stub')+' · без секретов реальных списаний нет. Локально: node tools/billing/admin-cli.mjs credit …');
+    ?('Провайдер: '+pay.driver+' · онлайн-оплата настроена'+unit+'.')
+    :('Провайдер: '+(pay.driver||'stub')+' (рекомендуется yoomoney + касса) · без секретов реальных списаний нет'+unit+'. Локально: node tools/billing/admin-cli.mjs credit …');
   }
  }catch{/* preview without server */}
 }
@@ -158,7 +160,7 @@ async function calculate(){
  if(!(Number.isInteger(m)&&Number.isInteger(s)&&m>=0&&s>=0&&s<60&&m*60+s<=14400)){$('calc').textContent='Проверьте время';return}
  const seconds=m*60+s;
  const q=location.protocol==='http:'?await serverQuote(seconds):null;
- $('calc').textContent=q?rub(q.costKopecks):rub(costKopecks(seconds));
+ $('calc').textContent=q?tokens(q.costKopecks):tokens(costKopecks(seconds));
 }
 $('minutes').oninput=()=>{calculate()};$('seconds').oninput=()=>{calculate()};calculate();
 document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>$('topup').value=b.dataset.amount);
@@ -171,24 +173,25 @@ $('promoApply').onclick=async()=>{
   const r=await fetch('/api/promos/validate',{method:'POST',headers:apiHeaders,body:JSON.stringify({code,amountRub})});
   const data=await r.json();
   if(!r.ok){notify(data.error||'Промокод недоступен.');$('promoPreview').textContent='';return}
-  $('promoPreview').textContent='Бонус: '+rub(data.bonusKopecks)+(data.preview&&data.preview.creditKopecks!=null?' · к зачислению после оплаты номинала: '+rub(data.preview.creditKopecks):'');
+  $('promoPreview').textContent='Бонус: '+tokens(data.bonusKopecks)+(data.preview&&data.preview.creditKopecks!=null?' · к зачислению после оплаты номинала: '+tokens(data.preview.creditKopecks):'');
   const redeem=await fetch('/api/promos/redeem',{method:'POST',headers:apiHeaders,body:JSON.stringify({code,amountRub})});
   const out=await redeem.json();
   if(!redeem.ok){notify(out.error||'Не удалось применить.');return}
-  notify(out.idempotent?'Промокод уже был применён.':'Зачислено '+rub(out.bonusKopecks));
+  notify(out.idempotent?'Промокод уже был применён.':'Зачислено '+tokens(out.bonusKopecks));
   await refreshWallet();
  }catch{notify('Нет связи с сервером.')}
 };
 $('pay').onclick=async()=>{
  const a=Number($('topup').value);
- if(!(a>=100&&a<=100000)){notify('Введите сумму от 100 до 100 000 ₽.');return}
+ if(!(a>=100&&a<=100000)){notify('Введите сумму от 100 до 100 000 токенов (= ₽).');return}
  if(location.protocol!=='http:'){notify('Пополнение доступно через локальный сервер.');return}
  try{
   const r=await fetch('/api/payments',{method:'POST',headers:apiHeaders,body:JSON.stringify({amountRub:a})});
   const data=await r.json();
   if(!r.ok){notify(data.error||'Не удалось создать платёж.');return}
   const msg=data.providerResult?.message||data.payment?.status;
-  notify(data.payment?.confirmationUrl?'Переход к оплате…':('Платёж '+data.payment.status+'. '+(msg||'Онлайн-эквайринг не подключён — используйте admin credit.')));
+  const credit=data.creditTokensOnSuccess!=null?(' Зачисление: '+data.creditTokensOnSuccess+' ток. (1:1).'):'';
+  notify(data.payment?.confirmationUrl?'Переход к оплате…':('Платёж '+data.payment.status+'. '+(msg||'Онлайн-эквайринг не подключён — используйте admin credit.')+credit));
   await refreshWallet();
  }catch{notify('Нет связи с сервером.')}
 };
