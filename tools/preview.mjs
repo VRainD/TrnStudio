@@ -7,9 +7,8 @@ import { pipeline } from 'node:stream/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractAudio, MediaError } from './media.mjs';
-import {
-  createJobFromUpload, getJob, readJobArtifact, transcriptionCapabilities,
-  listJobsForUser, getJobForUser,
+import { createJobFromUpload, getJob, readJobArtifact, transcriptionCapabilities,
+  listJobsForUser, getJobForUser, listJobsAdmin,
 } from './jobs.mjs';
 import { quoteCost, formatRub } from './billing/cost.mjs';
 import { getWalletView, listTransactions, creditWallet, createQuote } from './billing/wallet.mjs';
@@ -18,6 +17,10 @@ import {
   createTopupPayment, paymentStatusPublic, reconcilePaymentWebhook,
 } from './billing/payments.mjs';
 import { billingEnabled, ensureBillingUser } from './billing/store.mjs';
+import {
+  listAdminUsers, listAdminAudit, adminOverviewStats,
+  getMaintenance, setMaintenance, invalidateMaintenanceCache,
+} from './billing/admin.mjs';
 import {
   registerUser, loginUser, logoutByCookieHeader, currentUserFromRequest,
   bootstrapAuth, authCapabilities,
@@ -324,20 +327,134 @@ const server = http.createServer(async (req, res) => {
     }
 
     // --- Admin ---
+    if (req.method === 'GET' && urlPath === '/api/admin/health') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      const ch = clickhouseConfigured()
+        ? await pingClickHouse()
+        : { ok: false, error: 'ClickHouse не настроен' };
+      const stats = await adminOverviewStats();
+      json(res, 200, {
+        status: ready ? 'ok' : 'starting',
+        ready,
+        studio: { origin, host: allowedHost },
+        clickhouse: { configured: clickhouseConfigured(), ping: ch },
+        billing: {
+          enabled: billingEnabled(),
+          payments: paymentStatusPublic(),
+        },
+        maintenance: stats.maintenance,
+        stats: {
+          users: stats.users,
+          wallets: stats.wallets,
+          totalBalanceTokens: stats.totalBalanceTokens,
+          activeHolds: stats.activeHolds,
+          heldKopecks: stats.heldKopecks,
+          promos: stats.promos,
+          promosActive: stats.promosActive,
+          auditEvents: stats.auditEvents,
+          payments: stats.payments,
+        },
+        auth: authCapabilities(),
+        transcription: transcriptionCapabilities(),
+        // TOTP 2FA for admin — deferred (stub)
+        adminSecurity: { totpRequired: false, note: 'TOTP 2FA для admin — позже' },
+      });
+      return;
+    }
+    if (req.method === 'GET' && urlPath === '/api/admin/jobs') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      const items = await listJobsAdmin({
+        limit: Math.min(200, Number(qs.get('limit')) || 50),
+      });
+      // Privacy: never include transcript text in admin list payload.
+      json(res, 200, {
+        items: items.map((j) => ({
+          id: j.id,
+          userId: j.userId,
+          title: j.title,
+          status: j.status,
+          progress: j.progress,
+          error: j.error,
+          durationSeconds: j.durationSeconds,
+          backend: j.backend,
+          costKopecks: j.costKopecks ?? j.cost?.cost_kopecks ?? null,
+          costTokens: j.costTokens ?? ((j.costKopecks ?? j.cost?.cost_kopecks ?? 0) / 100),
+          createdAt: j.createdAt,
+          updatedAt: j.updatedAt,
+          textChars: j.textChars ?? 0,
+          source: j.source || null,
+        })),
+      });
+      return;
+    }
+    if (req.method === 'GET' && urlPath === '/api/admin/users') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      const items = await listAdminUsers({
+        limit: Math.min(200, Number(qs.get('limit')) || 100),
+      });
+      json(res, 200, { items });
+      return;
+    }
+    if (req.method === 'GET' && urlPath === '/api/admin/audit') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      const actions = qs.get('actions') ? qs.get('actions').split(',').map((s) => s.trim()).filter(Boolean) : null;
+      const items = await listAdminAudit({
+        limit: Math.min(200, Number(qs.get('limit')) || 100),
+        actions,
+      });
+      json(res, 200, { items });
+      return;
+    }
+    if (req.method === 'GET' && urlPath === '/api/admin/maintenance') {
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      json(res, 200, await getMaintenance());
+      return;
+    }
+    if (req.method === 'POST' && urlPath === '/api/admin/maintenance') {
+      if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      const body = await readJsonBody(req);
+      try {
+        const result = await setMaintenance({
+          enabled: Boolean(body.enabled),
+          message: body.message ?? null,
+          actorId: auth.user.id,
+        });
+        invalidateMaintenanceCache();
+        json(res, 200, result);
+      } catch (e) {
+        json(res, e.code === 'MAINTENANCE_ENV_LOCKED' ? 409 : 422, { error: e.message, code: e.code });
+      }
+      return;
+    }
     if (req.method === 'POST' && urlPath === '/api/admin/credit') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
       const auth = await requireAdmin(req, res);
       if (!auth) return;
       const body = await readJsonBody(req);
       try {
+        if (!body.reason || !String(body.reason).trim()) {
+          json(res, 422, { error: 'Укажите причину начисления (reason).', code: 'REASON_REQUIRED' });
+          return;
+        }
         const targetUserId = body.userId || auth.user.id;
         await ensureBillingUser({ id: targetUserId });
         const amountKopecks = body.amountKopecks != null
           ? Number(body.amountKopecks)
           : Math.round(Number(body.amountRub) * 100);
+        if (!Number.isFinite(amountKopecks) || amountKopecks <= 0) {
+          json(res, 422, { error: 'Укажите положительную сумму (amountRub или amountKopecks).' });
+          return;
+        }
         json(res, 200, await creditWallet({
           userId: targetUserId,
-          amountKopecks,
+          amountKopecks: Math.round(amountKopecks),
           reason: body.reason,
           businessKey: body.businessKey || undefined,
           actorId: auth.user.id,

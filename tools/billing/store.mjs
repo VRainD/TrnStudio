@@ -47,6 +47,7 @@ function emptyDb() {
     promoCodes: [],
     promoRedemptions: [],
     payments: [],
+    maintenance: { enabled: false, message: null, updatedAt: null, updatedBy: null },
   };
 }
 

@@ -127,6 +127,44 @@ export async function getTranscriptForUser(userId, jobId) {
   return rowToPublic(rows[0]);
 }
 
+/**
+ * Admin job list across all users. Metadata only — no transcript text/segments/srt/vtt.
+ */
+export async function listTranscriptsAdmin({ limit = 50, offset = 0 } = {}) {
+  if (!clickhouseConfigured()) return [];
+  const client = getSharedClient();
+  const result = await client.query({
+    query: `
+      SELECT
+        job_id, user_id, title, status, duration_seconds, backend,
+        cost_kopecks, cost_tokens, error, created_at, updated_at, completed_at,
+        length(text) AS text_chars
+      FROM transcripts FINAL
+      ORDER BY created_at DESC
+      LIMIT {limit:UInt32} OFFSET {offset:UInt32}
+    `,
+    query_params: { limit, offset },
+    format: 'JSONEachRow',
+  });
+  const rows = await result.json();
+  return rows.map((row) => ({
+    id: row.job_id,
+    jobId: row.job_id,
+    userId: row.user_id,
+    title: row.title,
+    status: row.status,
+    durationSeconds: Number(row.duration_seconds) || 0,
+    backend: row.backend || '',
+    costKopecks: Number(row.cost_kopecks) || 0,
+    costTokens: Number(row.cost_tokens) || (Number(row.cost_kopecks) || 0) / 100,
+    error: row.error || null,
+    createdAt: toIso(row.created_at),
+    updatedAt: toIso(row.updated_at),
+    completedAt: toIso(row.completed_at),
+    textChars: Number(row.text_chars) || 0,
+  }));
+}
+
 /** Cross-user read must return null — used in isolation tests. */
 export async function getTranscriptByJobId(jobId) {
   if (!clickhouseConfigured()) return null;

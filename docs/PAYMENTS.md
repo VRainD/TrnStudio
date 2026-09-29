@@ -48,7 +48,9 @@ node tools/billing/admin-cli.mjs promo-create --code WELCOME50 --type bonus_cred
 BILLING_ENABLED=true npm start
 ```
 
-Хранилище MVP: **файловый ledger** `BILLING_ROOT` / `.local-billing/ledger.json` (не PostgreSQL).
+Или в UI: вход как `admin` → навигация **Админ** → Пользователи / Промокоды. API: `POST /api/admin/credit` (reason обязателен), `GET|POST /api/admin/promos`, `GET /api/admin/audit`.
+
+Хранилище MVP: **файловый ledger** `BILLING_ROOT` / `.local-billing/ledger.json` (не PostgreSQL). Аудит финансовых действий — в `ledger.json` → `audit[]`.
 
 ## Фискализация / касса
 
