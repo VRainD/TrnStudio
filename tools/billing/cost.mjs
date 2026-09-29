@@ -1,13 +1,24 @@
 /**
- * Server-side tariff quote (integer kopecks). SPEC §5.
+ * Server-side tariff quote (integer minor units = kopecks). SPEC §5 + tokens 1:1.
+ *
+ * Token unit (locked product rule):
+ *   1 token (display) = 1 ₽ face value = 100 minor units (kopecks)
+ *   Paid amount maps 1:1 into spendable tokens (100 ₽ top-up → 100 tokens).
+ * Internal ledger keeps integer kopecks; UI/API surface «токены».
+ * Tariff R = 6 minor units/min = 0,06 token/min (= 0,06 ₽/min).
+ *
  * cost_kopecks = ceil(N * R / (S * 60))
- * Default R = 6 (0,06 ₽/min), S = 16000 (decoded PCM).
+ * Default R = 6, S = 16000 (decoded PCM).
  */
 export const DEFAULT_SAMPLE_RATE = 16_000;
 export const DEFAULT_TARIFF_KOPECKS_PER_MINUTE = 6;
+/** Alias: same integer as kopecks/min; 0,06 token per minute. */
+export const DEFAULT_TARIFF_TOKEN_MINOR_PER_MINUTE = DEFAULT_TARIFF_KOPECKS_PER_MINUTE;
 export const FORMULA_ID = 'ceil_n_r_over_s_60';
 export const TARIFF_VERSION = 1;
 export const QUOTE_TTL_MS = 30 * 60 * 1000;
+/** Minor units per one display token (1 token = 1 ₽). */
+export const TOKEN_MINOR_UNITS = 100;
 
 /**
  * @param {object} opts
@@ -69,5 +80,31 @@ export function costSnapshotFromSeconds(durationSeconds, extras = {}) {
 export function formatRub(kopecks) {
   const n = Number(kopecks);
   if (!Number.isInteger(n)) throw new TypeError('kopecks must be an integer');
-  return (n / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+  return (n / TOKEN_MINOR_UNITS).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }) + ' ₽';
+}
+
+/** Display tokens: 1 token = 1 ₽ = 100 minor units. */
+export function formatTokens(kopecks) {
+  const n = Number(kopecks);
+  if (!Number.isInteger(n)) throw new TypeError('kopecks must be an integer');
+  return (n / TOKEN_MINOR_UNITS).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }) + ' ток.';
+}
+
+/** Paid RUB amount → credit minor units (1:1 tokens). */
+export function rubToTokenMinor(amountRub) {
+  const rub = Number(amountRub);
+  if (!Number.isFinite(rub) || rub < 0) throw new TypeError('amountRub must be a non-negative number');
+  return Math.round(rub * TOKEN_MINOR_UNITS);
+}
+
+export function kopecksToTokenDisplay(kopecks) {
+  const n = Number(kopecks);
+  if (!Number.isInteger(n)) throw new TypeError('kopecks must be an integer');
+  return n / TOKEN_MINOR_UNITS;
 }
