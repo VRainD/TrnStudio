@@ -10,6 +10,7 @@ import {
 import {
   quoteCost, QUOTE_TTL_MS, costSnapshotFromSeconds, kopecksToTokenDisplay, TOKEN_MINOR_UNITS,
 } from './cost.mjs';
+import { isMaintenanceBlocking } from './admin.mjs';
 
 function walletOf(db, userId) {
   let w = db.wallets.find((x) => x.userId === userId);
@@ -190,6 +191,11 @@ export async function reserveForJob({
   durationSeconds,
   idempotencyKey,
 }) {
+  if (await isMaintenanceBlocking()) {
+    const err = new Error('Студия на обслуживании: новые резервы временно недоступны.');
+    err.code = 'MAINTENANCE';
+    throw err;
+  }
   const snap = costSnapshotFromSeconds(durationSeconds);
   const cost = snap.cost_kopecks;
   const key = idempotencyKey || `hold:job:${jobId}`;
@@ -215,6 +221,9 @@ export async function reserveForJob({
         idempotent: false,
       };
     }
+
+    // Maintenance check is async; callers should gate jobs before reserve.
+    // Sync path: env flag only inside lock (store flag checked by createJob).
 
     const available = availableOf(db, userId);
     if (available < cost) {

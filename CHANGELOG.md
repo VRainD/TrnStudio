@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Админ-панель UI:** экран «Админ» (только `role===admin`) — обзор/health, задачи (метаданные), пользователи + credit с обязательной причиной, промокоды, аудит. API: `/api/admin/health|jobs|users|audit|maintenance` + существующие credit/promos. Maintenance flag (env/store). Тесты `tools/test-admin.mjs`.
 - **Авторизация и кабинет:** opaque session (HttpOnly cookie), register/login/logout, bcrypt, роли `user`/`admin`. «Мои записи» из API; транскрипты в **ClickHouse** (не файл/PG). Compose-сервис `clickhouse`. Демо-сид только при `AUTH_DEMO_SEED=true`.
 - Токены 1∶1 с ₽: экран «Баланс» показывает токены; ledger — minor units (копейки); `1 токен = 1 ₽ = 100 minor`. Успешный платёж зачисляет `amount_rub` токенов. Предпочтительный драйвер `PAYMENT_DRIVER=yoomoney` (+ касса / FiscalProvider фаза D). См. [docs/PAYMENTS.md](docs/PAYMENTS.md).
 - Биллинг MVP (фазы A–B+): серверный quote/cost (копейки), снимок цены в job meta, файловый ledger (кошелёк / holds / журнал), промокоды `bonus_credit`, экран «Баланс» на API, admin CLI. `PaymentProvider` stub + слоты ЮMoney/ЮKassa без реальных списаний.

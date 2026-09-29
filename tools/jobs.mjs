@@ -15,8 +15,10 @@ import {
 import { billingEnabled } from './billing/store.mjs';
 import {
   upsertTranscript, listTranscriptsForUser, getTranscriptForUser,
+  listTranscriptsAdmin,
 } from './clickhouse/transcripts.mjs';
 import { clickhouseConfigured } from './clickhouse/client.mjs';
+import { isMaintenanceBlocking } from './billing/admin.mjs';
 
 const workerRoot = fileURLToPath(new URL('../worker/', import.meta.url));
 const longformScript = join(workerRoot, 'longform_transcribe.py');
@@ -195,6 +197,11 @@ async function runLongform(job) {
  */
 export async function createJobFromUpload(req, mediaRoot, { title, userId } = {}) {
   if (!userId) throw new MediaError('Требуется авторизация.');
+  if (await isMaintenanceBlocking()) {
+    const err = new MediaError('Студия на обслуживании: новые задачи временно недоступны.');
+    err.code = 'MAINTENANCE';
+    throw err;
+  }
   await mkdir(mediaRoot, { recursive: true });
   const dir = await mkdtemp(join(mediaRoot, 'asr-'));
   const id = randomUUID();
@@ -383,6 +390,49 @@ export async function listJobsForUser(userId, { limit = 50 } = {}) {
   // In-memory wins for fresher progress.
   for (const job of active) {
     byId.set(job.id, { ...job, textPreview: '' });
+  }
+
+  return [...byId.values()]
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, limit);
+}
+
+/**
+ * Admin: all users' jobs. Metadata only (no transcript body in list).
+ */
+export async function listJobsAdmin({ limit = 50 } = {}) {
+  const active = [...jobs.values()].map((j) => ({
+    ...publicJob(j),
+    textChars: 0,
+    source: 'memory',
+  }));
+
+  let history = [];
+  if (clickhouseConfigured()) {
+    history = await listTranscriptsAdmin({ limit });
+  }
+
+  const byId = new Map();
+  for (const row of history) {
+    byId.set(row.id, {
+      id: row.id,
+      userId: row.userId,
+      status: row.status,
+      progress: row.status === 'done' ? 1 : (row.status === 'failed' ? 1 : 0),
+      error: row.error,
+      title: row.title,
+      durationSeconds: row.durationSeconds,
+      backend: row.backend,
+      costKopecks: row.costKopecks,
+      costTokens: row.costTokens,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      textChars: row.textChars || 0,
+      source: 'clickhouse',
+    });
+  }
+  for (const job of active) {
+    byId.set(job.id, job);
   }
 
   return [...byId.values()]

@@ -29,6 +29,7 @@ docker compose up -d --build
 | Калькулятор 0,06 ₽/мин (= ток./мин) | Серверный quote + UI; списания при `BILLING_ENABLED=true` |
 | Docker Compose (studio + ClickHouse) | Конфигурация включена |
 | Кошелёк, holds, промокоды (файловый ledger) | Работает; привязка к реальному `user_id` |
+| Админ-панель (health, jobs, users/credit, promos, audit) | Работает (`role===admin`) |
 | Онлайн-платежи ЮMoney/ЮKassa, email verify, 2FA | Stub / не подключены без секретов |
 | Публичный многопользовательский сервис | Не готов к эксплуатации |
 
@@ -88,6 +89,7 @@ GigaAM v3 e2e RNNT → Node studio preview → ClickHouse (транскрипт�
 - [x] Тариф и контейнерная упаковка.
 - [x] Учётные записи, сессии и изоляция данных пользователей.
 - [x] Хранение транскриптов в ClickHouse + кабинет «Мои записи».
+- [x] Админ-панель UI (обзор, задачи, пользователи/credit, промо, аудит).
 - [ ] GPU-пробник GigaAM и замеры VRAM/RTF на RTX 3060 Ti 16 ГБ (профиль `gpu-probe` в репозитории).
 - [ ] Email verify / reset / 2FA admin (SPEC §4).
 - [ ] Эквайринг и интеграция существующей кассы.
