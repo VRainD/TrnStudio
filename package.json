@@ -1,15 +1,26 @@
 {
   "name": "trnstudio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Gorizont audio and video studio with local FFmpeg extraction",
-  "engines": { "node": ">=22" },
+  "description": "Gorizont audio and video studio with auth, ClickHouse transcripts, local FFmpeg extraction",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node tools/preview.mjs",
-    "test": "node tools/test-billing.mjs && node tools/test-media.mjs && TRANSCRIBE_BACKEND=mock python3 tools/test-longform.py",
+    "test": "node tools/test-billing.mjs && node tools/test-auth.mjs && node tools/test-clickhouse.mjs && node tools/test-media.mjs && TRANSCRIBE_BACKEND=mock python3 tools/test-longform.py",
     "test:billing": "node tools/test-billing.mjs",
+    "test:auth": "node tools/test-auth.mjs",
+    "test:clickhouse": "node tools/test-clickhouse.mjs",
     "test:ui": "node tools/test-interface.cjs",
+    "clickhouse:migrate": "node tools/clickhouse/migrate.mjs",
     "billing:admin": "node tools/billing/admin-cli.mjs"
   },
-  "devDependencies": { "playwright": "1.62.1" }
+  "devDependencies": {
+    "playwright": "1.62.1"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.23.1",
+    "bcryptjs": "^3.0.3"
+  }
 }

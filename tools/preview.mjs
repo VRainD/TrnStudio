@@ -1,4 +1,4 @@
-// Local development only. Billing uses file-backed ledger; online payments stubbed.
+// Local development studio: auth sessions + ClickHouse transcripts + billing.
 import http from 'node:http';
 import { readFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -7,14 +7,28 @@ import { pipeline } from 'node:stream/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractAudio, MediaError } from './media.mjs';
-import { createJobFromUpload, getJob, readJobArtifact, transcriptionCapabilities } from './jobs.mjs';
+import {
+  createJobFromUpload, getJob, readJobArtifact, transcriptionCapabilities,
+  listJobsForUser, getJobForUser,
+} from './jobs.mjs';
 import { quoteCost, formatRub } from './billing/cost.mjs';
 import { getWalletView, listTransactions, creditWallet, createQuote } from './billing/wallet.mjs';
 import { validatePromo, redeemPromo, createPromo, listPromos, setPromoStatus } from './billing/promos.mjs';
 import {
   createTopupPayment, paymentStatusPublic, reconcilePaymentWebhook,
 } from './billing/payments.mjs';
-import { billingEnabled, demoUserId } from './billing/store.mjs';
+import { billingEnabled, ensureBillingUser } from './billing/store.mjs';
+import {
+  registerUser, loginUser, logoutByCookieHeader, currentUserFromRequest,
+  bootstrapAuth, authCapabilities,
+} from './auth/service.mjs';
+import {
+  sessionCookieHeader, clearSessionCookieHeader, SESSION_COOKIE,
+} from './auth/sessions.mjs';
+import {
+  clickhouseConfigured, pingClickHouse, getSharedClient,
+} from './clickhouse/client.mjs';
+import { ensureTranscriptSchema } from './clickhouse/transcripts.mjs';
 
 const page = new URL('../prototype/index.html', import.meta.url);
 const root = process.env.MEDIA_ROOT || fileURLToPath(new URL('../.local-media/', import.meta.url));
@@ -22,9 +36,14 @@ const port = Number(process.env.PORT || 4173);
 const origin = process.env.PUBLIC_ORIGIN || `http://127.0.0.1:${port}`;
 const allowedHost = new URL(origin).host;
 let busy = false;
+let ready = false;
 
-function json(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+function json(res, status, data, extraHeaders = {}) {
+  res.writeHead(status, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    ...extraHeaders,
+  });
   res.end(JSON.stringify(data));
 }
 
@@ -63,12 +82,47 @@ function matchJob(url) {
   return { id: m[1], artifact: m[2] || null };
 }
 
+async function requireUser(req, res) {
+  const auth = await currentUserFromRequest(req);
+  if (!auth) {
+    json(res, 401, { error: 'Требуется вход.', code: 'UNAUTHORIZED' });
+    return null;
+  }
+  return auth;
+}
+
+async function requireAdmin(req, res) {
+  const auth = await requireUser(req, res);
+  if (!auth) return null;
+  if (auth.user.role !== 'admin') {
+    json(res, 403, { error: 'Недостаточно прав.', code: 'FORBIDDEN' });
+    return null;
+  }
+  return auth;
+}
+
+async function syncBilling(user) {
+  await ensureBillingUser({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const urlPath = (req.url || '').split('?')[0];
     const qs = new URL(req.url || '/', origin).searchParams;
 
-    if (urlPath === '/healthz' && req.method === 'GET') { json(res, 200, { status: 'ok' }); return; }
+    if (urlPath === '/healthz' && req.method === 'GET') {
+      json(res, 200, {
+        status: 'ok',
+        ready,
+        clickhouse: clickhouseConfigured(),
+      });
+      return;
+    }
     if (req.headers.host !== allowedHost) { json(res, 403, { error: 'Недопустимый адрес сервера.' }); return; }
     if (req.method === 'GET' && (urlPath === '/' || urlPath === '/index.html')) {
       try {
@@ -78,13 +132,74 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && urlPath === '/api/capabilities') {
+      const ch = clickhouseConfigured() ? await pingClickHouse() : { ok: false };
       json(res, 200, {
         ...transcriptionCapabilities(),
+        auth: authCapabilities(),
         billing: {
           enabled: billingEnabled(),
           payments: paymentStatusPublic(),
         },
+        clickhouse: { configured: clickhouseConfigured(), ping: ch },
       });
+      return;
+    }
+
+    // --- Auth (SPEC §8) ---
+    if (req.method === 'POST' && urlPath === '/api/auth/register') {
+      if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const body = await readJsonBody(req);
+      try {
+        const user = await registerUser({
+          email: body.email,
+          password: body.password,
+          name: body.name,
+        });
+        await syncBilling(user);
+        const logged = await loginUser({
+          email: body.email,
+          password: body.password,
+          userAgent: req.headers['user-agent'],
+          ip: req.socket.remoteAddress,
+        });
+        json(res, 201, { user: logged.user }, {
+          'Set-Cookie': sessionCookieHeader(logged.token, { maxAgeSec: logged.maxAgeSec }),
+        });
+      } catch (e) {
+        const status = e.code === 'EMAIL_TAKEN' ? 409 : 422;
+        json(res, status, { error: e.message || 'Не удалось зарегистрироваться.', code: e.code });
+      }
+      return;
+    }
+    if (req.method === 'POST' && urlPath === '/api/auth/login') {
+      if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const body = await readJsonBody(req);
+      try {
+        const logged = await loginUser({
+          email: body.email,
+          password: body.password,
+          userAgent: req.headers['user-agent'],
+          ip: req.socket.remoteAddress,
+        });
+        await syncBilling(logged.user);
+        json(res, 200, { user: logged.user }, {
+          'Set-Cookie': sessionCookieHeader(logged.token, { maxAgeSec: logged.maxAgeSec }),
+        });
+      } catch (e) {
+        json(res, 401, { error: e.message || 'Неверный email или пароль.', code: e.code || 'AUTH_FAILED' });
+      }
+      return;
+    }
+    if (req.method === 'POST' && urlPath === '/api/auth/logout') {
+      if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      await logoutByCookieHeader(req.headers.cookie);
+      json(res, 200, { ok: true }, { 'Set-Cookie': clearSessionCookieHeader() });
+      return;
+    }
+    if (req.method === 'GET' && urlPath === '/api/me') {
+      const auth = await currentUserFromRequest(req);
+      if (!auth) { json(res, 401, { error: 'Требуется вход.', code: 'UNAUTHORIZED' }); return; }
+      json(res, 200, { user: auth.user, session: auth.session });
       return;
     }
 
@@ -105,8 +220,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && urlPath === '/api/quotes') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
       const body = await readJsonBody(req);
       const q = await createQuote({
+        userId: auth.user.id,
         durationSeconds: Number(body.durationSeconds),
         uploadId: body.uploadId || null,
         fileHash: body.fileHash || null,
@@ -115,26 +234,36 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // --- Wallet ---
+    // --- Wallet (authenticated) ---
     if (req.method === 'GET' && urlPath === '/api/wallet') {
-      json(res, 200, await getWalletView(demoUserId()));
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
+      json(res, 200, await getWalletView(auth.user.id));
       return;
     }
     if (req.method === 'GET' && urlPath === '/api/wallet/transactions') {
-      json(res, 200, { items: await listTransactions(demoUserId()) });
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
+      json(res, 200, { items: await listTransactions(auth.user.id) });
       return;
     }
 
-    // --- Payments (stub; no real charge without secrets) ---
+    // --- Payments ---
     if (req.method === 'GET' && urlPath === '/api/payments/status') {
       json(res, 200, paymentStatusPublic());
       return;
     }
     if (req.method === 'POST' && urlPath === '/api/payments') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
       const body = await readJsonBody(req);
       try {
         const result = await createTopupPayment({
+          userId: auth.user.id,
           amountRub: Number(body.amountRub),
           idempotenceKey: body.idempotenceKey || req.headers['idempotence-key'] || undefined,
         });
@@ -157,9 +286,12 @@ const server = http.createServer(async (req, res) => {
     // --- Promos ---
     if (req.method === 'POST' && urlPath === '/api/promos/validate') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireUser(req, res);
+      if (!auth) return;
       const body = await readJsonBody(req);
       try {
         json(res, 200, await validatePromo({
+          userId: auth.user.id,
           code: body.code,
           topupKopecks: body.topupKopecks != null ? Number(body.topupKopecks) : (
             body.amountRub != null ? Number(body.amountRub) * 100 : null
@@ -172,9 +304,13 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && urlPath === '/api/promos/redeem') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
       const body = await readJsonBody(req);
       try {
         json(res, 200, await redeemPromo({
+          userId: auth.user.id,
           code: body.code,
           topupKopecks: body.topupKopecks != null ? Number(body.topupKopecks) : (
             body.amountRub != null ? Number(body.amountRub) * 100 : null
@@ -187,18 +323,24 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // --- Admin (local demo user is admin) ---
+    // --- Admin ---
     if (req.method === 'POST' && urlPath === '/api/admin/credit') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
       const body = await readJsonBody(req);
       try {
+        const targetUserId = body.userId || auth.user.id;
+        await ensureBillingUser({ id: targetUserId });
         const amountKopecks = body.amountKopecks != null
           ? Number(body.amountKopecks)
           : Math.round(Number(body.amountRub) * 100);
         json(res, 200, await creditWallet({
+          userId: targetUserId,
           amountKopecks,
           reason: body.reason,
           businessKey: body.businessKey || undefined,
+          actorId: auth.user.id,
         }));
       } catch (e) {
         json(res, 422, { error: e.message || 'Не удалось начислить.' });
@@ -206,35 +348,56 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     if (req.method === 'GET' && urlPath === '/api/admin/promos') {
-      try { json(res, 200, { items: await listPromos() }); }
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
+      try { json(res, 200, { items: await listPromos({ actorId: auth.user.id }) }); }
       catch (e) { json(res, 403, { error: e.message }); }
       return;
     }
     if (req.method === 'POST' && urlPath === '/api/admin/promos') {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
       const body = await readJsonBody(req);
-      try { json(res, 201, await createPromo(body)); }
+      try { json(res, 201, await createPromo({ ...body, actorId: auth.user.id })); }
       catch (e) { json(res, 422, { error: e.message }); }
       return;
     }
     if (req.method === 'POST' && urlPath.startsWith('/api/admin/promos/') && urlPath.endsWith('/status')) {
       if (!localClientOk(req)) { json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' }); return; }
+      const auth = await requireAdmin(req, res);
+      if (!auth) return;
       const id = urlPath.slice('/api/admin/promos/'.length, -'/status'.length);
       const body = await readJsonBody(req);
-      try { json(res, 200, await setPromoStatus({ promoId: id, status: body.status })); }
+      try { json(res, 200, await setPromoStatus({ promoId: id, status: body.status, actorId: auth.user.id })); }
       catch (e) { json(res, 422, { error: e.message }); }
+      return;
+    }
+
+    // --- Jobs / cabinet (owner-scoped) ---
+    if (req.method === 'GET' && urlPath === '/api/jobs') {
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      const items = await listJobsForUser(auth.user.id, {
+        limit: Math.min(100, Number(qs.get('limit')) || 50),
+      });
+      json(res, 200, { items });
       return;
     }
 
     const jobMatch = matchJob(urlPath);
     if (req.method === 'GET' && jobMatch && !jobMatch.artifact) {
-      const job = getJob(jobMatch.id);
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      const job = await getJobForUser(auth.user.id, jobMatch.id);
       if (!job) { json(res, 404, { error: 'Задача не найдена.' }); return; }
       json(res, 200, job);
       return;
     }
     if (req.method === 'GET' && jobMatch && jobMatch.artifact) {
-      const artifact = await readJobArtifact(jobMatch.id, jobMatch.artifact);
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      const artifact = await readJobArtifact(jobMatch.id, jobMatch.artifact, { userId: auth.user.id });
       if (!artifact) { json(res, 404, { error: 'Задача не найдена.' }); return; }
       if (artifact.pending) { json(res, 409, { error: 'Результат ещё не готов.', job: artifact.job }); return; }
       res.writeHead(200, { 'Content-Type': artifact.contentType, 'Cache-Control': 'no-store' });
@@ -247,12 +410,15 @@ const server = http.createServer(async (req, res) => {
         json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' });
         return;
       }
+      const auth = await requireUser(req, res);
+      if (!auth) return;
+      await syncBilling(auth.user);
       if (busy) { json(res, 409, { error: 'Сейчас обрабатывается другой файл. Попробуйте чуть позже.' }); return; }
       if (Number(req.headers['content-length']) > 1024 ** 3) { json(res, 413, { error: 'Максимальный размер — 1 ГБ.' }); return; }
       busy = true;
       try {
         const title = decodeURIComponent(String(req.headers['x-gorizont-title'] || 'Запись'));
-        const job = await createJobFromUpload(req, root, { title });
+        const job = await createJobFromUpload(req, root, { title, userId: auth.user.id });
         json(res, 202, job);
       } catch (error) {
         if (!res.headersSent && !res.destroyed) {
@@ -276,6 +442,8 @@ const server = http.createServer(async (req, res) => {
       json(res, 403, { error: 'Разрешены запросы только из локального интерфейса.' });
       return;
     }
+    const authExtract = await requireUser(req, res);
+    if (!authExtract) return;
     if (busy) { json(res, 409, { error: 'Сейчас обрабатывается другой файл. Попробуйте чуть позже.' }); return; }
     if (Number(req.headers['content-length']) > 1024 ** 3) { json(res, 413, { error: 'Максимальный размер — 1 ГБ.' }); return; }
     busy = true;
@@ -322,4 +490,28 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.requestTimeout = 10 * 60 * 1000;
-server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`Local studio: ${origin}`));
+
+async function boot() {
+  await bootstrapAuth();
+  if (clickhouseConfigured()) {
+    try {
+      await ensureTranscriptSchema();
+      const ping = await pingClickHouse();
+      if (!ping.ok) console.warn('ClickHouse ping failed:', ping.error);
+      else console.log('ClickHouse schema ready');
+    } catch (err) {
+      console.warn('ClickHouse migrate failed (studio still starts):', err.message);
+    }
+  }
+  ready = true;
+  server.listen(port, process.env.HOST || '127.0.0.1', () => {
+    console.log(`Local studio: ${origin} (auth + ClickHouse transcripts)`);
+  });
+}
+
+boot().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+
+export { SESSION_COOKIE, getSharedClient };

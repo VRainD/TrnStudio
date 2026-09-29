@@ -7,7 +7,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,17 +18,36 @@ jobs:
       - run: python3 -m pip install --user -r worker/requirements-ci.txt
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm test
-      - name: Browser checks
+      - name: Start ClickHouse
         run: |
-          TRANSCRIBE_BACKEND=mock node tools/preview.mjs > /tmp/studio.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/healthz && break || sleep 1; done
+          docker compose up -d --wait clickhouse
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:8123/ping && break
+            sleep 1
+          done
+          CLICKHOUSE_URL=http://127.0.0.1:8123 node tools/clickhouse/migrate.mjs
+      - name: Unit tests
+        env:
+          CLICKHOUSE_URL: http://127.0.0.1:8123
+          CLICKHOUSE_ENABLED: "true"
+          TRANSCRIBE_BACKEND: mock
+        run: npm test
+      - name: Browser checks
+        env:
+          CLICKHOUSE_URL: http://127.0.0.1:8123
+          CLICKHOUSE_ENABLED: "true"
+          TRANSCRIBE_BACKEND: mock
+          AUTH_DEMO_SEED: "false"
+        run: |
+          TRANSCRIBE_BACKEND=mock CLICKHOUSE_URL=http://127.0.0.1:8123 node tools/preview.mjs > /tmp/studio.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/healthz && break || sleep 1; done
           npm run test:ui
       - run: docker compose config --quiet
       - run: docker compose build studio
       - name: Container smoke test
         run: |
-          docker compose up -d --wait studio
+          docker compose up -d --wait
           curl --fail http://127.0.0.1:4180/healthz
+          curl --fail http://127.0.0.1:8123/ping
       - if: always()
-        run: docker compose down
+        run: docker compose down -v

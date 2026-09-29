@@ -15,188 +15,444 @@ aside{background:linear-gradient(180deg,#0b122c,#090f25);border-color:#6c9bd61c}
 .orbit{right:5%;top:42px;width:335px;height:185px;transform:rotate(-24deg);border:2px solid #aeedff;background:radial-gradient(ellipse,#050a1c 55%,#10132f 68%,#8b5cff20 74%,transparent);box-shadow:0 0 5px #edffff,0 -5px 25px #00d4ff90,0 10px 45px #8b5cff80,inset 0 0 22px #00d4ff45}.orbit:before{inset:-22px;border-color:#00d4ff24;box-shadow:0 0 55px #00d4ff0a}.orbit:after{content:'';position:absolute;inset:25px -40px;border-radius:50%;border-top:1px solid #8b5cff45;border-bottom:1px solid #00e8ff35;transform:rotate(8deg)}
 .grid{align-items:start}.card{border-color:#7da1d626;background:linear-gradient(140deg,#14223aee,#101830f5);box-shadow:0 14px 45px #02081a18}.source-type{background:#0c173180;border-color:#769ed12a;color:#c2d3ed}.drop{border-color:#00d4ff55;background:radial-gradient(ellipse at 50% 110%,#00d4ff13,transparent 75%),#0a142880}.drop:hover{background:#102840;border-color:#00e8ff}.drop strong{font-weight:550}.format-list span{background:#09162d;border-color:#668abc25;color:#aac4df}.telemost-note{border-color:#8b5cff38;background:linear-gradient(100deg,#8b5cff10,#00d4ff04)}.telemost-note b{color:#c4c8ff}.primary{background:linear-gradient(110deg,#00e8ff,#00bed9);color:#051628;box-shadow:0 4px 20px #00d4ff18}.primary:hover{background:linear-gradient(110deg,#7df4ff,#00d4e9);box-shadow:0 5px 22px #00d4ff30}.price{color:#f0f9ff;font-size:45px}.price small{font-size:12px}.status{color:#69e4ff;background:#00d4ff0b}.result-audio{background:#00d4ff05}.media-status{background:#08142b}.table td{border-color:#9bb4ef13}input,textarea{background:#0a142a;border-color:#698aba38}.notice{background:#00d4ff08}.toast{background:#112844;border-color:#00d4ff55}.footer{color:#7895bb}.fileicon{background:#0b1c35;border-color:#00d4ff25}.workflow{border-color:#8da7ce20}.workflow .number{color:#67dbf5}.fine{color:#a2b5d0}
 @media(max-width:1050px){.orbit{right:-105px;opacity:.48}}@media(max-width:650px){.hero{min-height:255px;padding-top:30px}.hero h1{font-size:35px}.orbit{right:-170px;opacity:.28}.price{font-size:39px}}
+
+/* Auth gate — Горизонт brand (not competitor clone) */
+#authGate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;
+background:radial-gradient(ellipse at 70% 10%,#273e7455,transparent 50%),radial-gradient(ellipse at 20% 90%,#8b5cff18,transparent 55%),var(--bg)}
+#authGate[hidden]{display:none!important}
+.auth-card{width:min(420px,100%);border:1px solid #7da1d626;border-radius:18px;padding:36px 32px 28px;
+background:linear-gradient(145deg,#14223af2,#0c152df5);box-shadow:0 24px 60px #02081a55}
+.auth-card .brand{justify-content:center;margin-bottom:8px;font-size:22px}
+.auth-card .subbrand{text-align:center;margin:0 0 28px}
+.auth-card h1{font-size:26px;letter-spacing:-.8px;margin:0 0 8px;font-weight:550;text-align:center}
+.auth-card .lead{color:var(--muted);font-size:13px;text-align:center;margin:0 0 22px}
+.auth-tabs{display:flex;gap:8px;margin-bottom:18px}
+.auth-tabs button{flex:1}
+.auth-tabs button.active{background:#00e8ff14;color:var(--mint);border-color:#00e8ff33}
+.auth-card .full{margin-top:18px}
+.auth-error{color:#ffb4a8;font-size:12px;min-height:1.2em;margin-top:10px}
+.auth-hint{font-size:11px;color:var(--muted);margin-top:16px;text-align:center}
+.shell[data-authed="0"]{visibility:hidden}
+.profile-actions{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.profile-actions button{font-size:11px;padding:6px 10px}
+@keyframes authIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.auth-card{animation:authIn .45s ease-out}
+.orbit-auth{width:180px;height:100px;margin:0 auto 18px;border-radius:50%;transform:rotate(-22deg);
+border:2px solid #aeedff;background:radial-gradient(ellipse,#050a1c 55%,#8b5cff20 74%,transparent);
+box-shadow:0 0 5px #edffff,0 -5px 25px #00d4ff60,0 10px 35px #8b5cff50}
 </style></head>
-<body><div class="shell"><aside><div class="brand"><i class="logo" aria-hidden="true"></i>ГОРИЗОНТ</div><div class="subbrand">ЗА ПРЕДЕЛАМИ ЗВУКА</div><nav aria-label="Основная навигация"><button class="active" data-view="studio">◈ <span>Студия</span></button><button data-view="records">≋ <span>Мои записи</span></button><button data-view="wallet">◉ <span>Баланс</span></button><button data-view="settings">⚙ <span>Настройки</span></button></nav><div class="sidebottom"><div class="node"><span class="dot"></span>Локальное распознавание<br><span style="font-size:10px">GigaAM v3 · концепция сервиса</span></div><div class="profile"><div class="avatar">В</div><div>Владимир<br><small>Демонстрационный профиль</small></div></div></div></aside>
-<main><header><div class="crumb">Рабочее пространство / <span id="breadcrumb">Студия</span></div><span class="tag">ЛОКАЛЬНАЯ СТУДИЯ · PREVIEW</span></header>
-<section id="studio" class="view"><div class="hero"><div class="orbit" aria-hidden="true"></div><div class="copy"><div class="eyebrow">ВАШ ГОЛОС. НОВАЯ ФОРМА.</div><h1>Из звука<br>в пространство смысла.</h1><p>Интервью, видеовстречи и голосовые заметки.<br>Распознайте длинную запись. Сохраните каждую мысль.</p></div></div><div class="grid"><div class="card"><div class="title"><h2>Начните с вашей записи</h2><span class="tag">01 / ЗАГРУЗКА</span></div><div class="source-types"><span class="source-type"><em>≋</em> Аудиозапись</span><span class="source-type"><em>▷</em> Видео</span><span class="source-type"><em>◈</em> Яндекс Телемост</span></div><button class="drop" id="drop"><span class="sound-mark" aria-hidden="true"><i style="height:10px"></i><i style="height:18px"></i><i style="height:30px"></i><i style="height:22px"></i><i style="height:38px"></i><i style="height:16px"></i><i style="height:28px"></i><i style="height:42px"></i><i style="height:24px"></i><i style="height:16px"></i><i style="height:32px"></i><i style="height:20px"></i><i style="height:10px"></i></span><strong>Дайте звуку новую форму</strong><span>Перетащите аудио или видео · либо выберите файл</span></button><input id="file" type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.aiff,.aif,.wma,.mp4,.webm,.webv,.mov,.mkv,.avi,.m4v" hidden><div class="format-list"><span>MP3</span><span>WAV</span><span>M4A</span><span>AAC</span><span>OGG</span><span>OPUS</span><span>FLAC</span><span>AIFF</span><span>WMA</span><span>MP4</span><span>WEBM</span><span>MOV</span><span>MKV</span><span>AVI</span></div><div class="telemost-note"><span style="font-size:20px">◈</span><div><b>Запись из Телемоста? Просто перенесите файл.</b><br>WebM поддерживается. Звук можно извлечь отдельно от видео.</div></div><div class="detail"><span>До 1 ГБ · до 4 часов</span><span>Русский язык</span></div><div id="selected" hidden><div class="divider"></div><div class="media-heading"><div><b id="selectedName"></b><div id="sourceMeta" class="source-meta"></div></div><span id="sourceBadge" class="tag">МЕДИА</span></div><div class="preview-label">ПРОСЛУШИВАНИЕ ИСХОДНОГО ФАЙЛА · ЕСЛИ ПОДДЕРЖИВАЕТСЯ БРАУЗЕРОМ</div><audio id="player" controls preload="metadata"></audio><div class="detail"><span>Предварительная длительность</span><b id="duration">Определяем…</b></div><div class="detail"><span>Стоимость по тарифу</span><b id="filePrice">—</b></div><div class="extract-actions"><button id="extract" class="primary" disabled>Распознать запись ↗</button></div><div id="mediaStatus" class="media-status" role="status" aria-live="polite">Выберите файл для локальной транскрибации.</div><div id="audioResult" class="result-audio" hidden><strong id="jobProgressLabel">Распознавание…</strong><div class="detail"><span>Прогресс</span><b id="jobProgress">0%</b></div><p class="fine">Длинные записи режутся на фрагменты ~20 с (как в VRainD/gigaamui), короткие ≤25 с идут одним проходом.</p></div><p class="fine">Обработка на этом компьютере: извлечение звука и распознавание длинного аудио/видео. Запись не уходит во внешние облака ASR.</p></div><div class="workflow"><div><div class="number">01 / ИСТОЧНИК</div><b>Аудио или видео</b><span>Один файл — один сценарий</span></div><div><div class="number">02 / РАСПОЗНАВАНИЕ</div><b>Длинная запись</b><span>Чанки ~20 с · локальный ASR</span></div><div><div class="number">03 / ТЕКСТ</div><b>Транскрипт</b><span>TXT · SRT · VTT</span></div></div></div><div class="card"><div class="eyebrow">ПРОСТАЯ АРИФМЕТИКА</div><div style="margin-top:17px" class="price">0,06 ₽ <small>/ минута аудио</small></div><p class="muted" style="font-size:12px">Только длительность записи.<br>Без подписки и скрытых пакетов.</p><div class="divider"></div><div class="detail"><span>Шаг тарификации</span><b>1 секунда</b></div><div class="detail"><span>Списание</span><b>После результата</b></div><button class="full primary" id="example">Посмотреть пример результата ↗</button><p class="fine">3,60 ₽ за час записи. Оплата пока не подключена.</p></div></div><div class="section"><div class="title"><h2>Последние записи <span class="tag">ПРИМЕРЫ</span></h2><button data-view="records">Все записи ↗</button></div><div id="recent"></div></div></section>
-<section id="records" class="view" hidden><div class="hero"><div class="eyebrow">БИБЛИОТЕКА</div><h1>Ничего не теряется.</h1><p>Записи и результаты в одном пространстве.</p></div><label for="search">Поиск по названию</label><input id="search" placeholder="Найти запись…"><div id="allRecords" class="section"></div><p class="fine">Здесь представлены демонстрационные записи.</p></section>
+<body>
+<div id="authGate" hidden>
+  <div class="auth-card" role="dialog" aria-labelledby="authTitle">
+    <div class="brand"><i class="logo" aria-hidden="true"></i>ГОРИЗОНТ</div>
+    <div class="subbrand">ЗА ПРЕДЕЛАМИ ЗВУКА</div>
+    <div class="orbit-auth" aria-hidden="true"></div>
+    <h1 id="authTitle">Вход в студию</h1>
+    <p class="lead">Ваши записи и транскрипты — только для вас.</p>
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="active" id="tabLogin" role="tab" aria-selected="true">Вход</button>
+      <button type="button" id="tabRegister" role="tab" aria-selected="false">Регистрация</button>
+    </div>
+    <form id="authForm" autocomplete="on">
+      <div id="nameField" hidden>
+        <label for="authName">Имя</label>
+        <input id="authName" name="name" maxlength="80" autocomplete="name">
+      </div>
+      <label for="authEmail">Email</label>
+      <input id="authEmail" name="email" type="email" required autocomplete="username">
+      <label for="authPassword">Пароль</label>
+      <input id="authPassword" name="password" type="password" required minlength="12" autocomplete="current-password">
+      <p class="auth-error" id="authError" role="alert"></p>
+      <button class="primary full" type="submit" id="authSubmit">Войти</button>
+    </form>
+    <p class="auth-hint" id="authHint">Пароль не короче 12 символов. Сессия — HttpOnly cookie.</p>
+  </div>
+</div>
+<div class="shell" data-authed="0"><aside><div class="brand"><i class="logo" aria-hidden="true"></i>ГОРИЗОНТ</div><div class="subbrand">ЗА ПРЕДЕЛАМИ ЗВУКА</div><nav aria-label="Основная навигация"><button class="active" data-view="studio">◈ <span>Студия</span></button><button data-view="records">≋ <span>Мои записи</span></button><button data-view="wallet">◉ <span>Баланс</span></button><button data-view="settings">⚙ <span>Настройки</span></button></nav><div class="sidebottom"><div class="node"><span class="dot"></span>Локальное распознавание<br><span style="font-size:10px">GigaAM v3 · ваш аккаунт</span></div><div class="profile"><div class="avatar" id="profileAvatar">?</div><div><span id="profileName">—</span><br><small id="profileMeta">Вход…</small></div></div><div class="profile-actions"><button type="button" id="logoutBtn">Выйти</button></div></div></aside>
+<main><header><div class="crumb">Рабочее пространство / <span id="breadcrumb">Студия</span></div><span class="tag" id="headerTag">СЕССИЯ</span></header>
+<section id="studio" class="view"><div class="hero"><div class="orbit" aria-hidden="true"></div><div class="copy"><div class="eyebrow">ВАШ ГОЛОС. НОВАЯ ФОРМА.</div><h1>Из звука<br>в пространство смысла.</h1><p>Интервью, видеовстречи и голосовые заметки.<br>Распознайте длинную запись. Сохраните каждую мысль.</p></div></div><div class="grid"><div class="card"><div class="title"><h2>Начните с вашей записи</h2><span class="tag">01 / ЗАГРУЗКА</span></div><div class="source-types"><span class="source-type"><em>≋</em> Аудиозапись</span><span class="source-type"><em>▷</em> Видео</span><span class="source-type"><em>◈</em> Яндекс Телемост</span></div><button class="drop" id="drop"><span class="sound-mark" aria-hidden="true"><i style="height:10px"></i><i style="height:18px"></i><i style="height:30px"></i><i style="height:22px"></i><i style="height:38px"></i><i style="height:16px"></i><i style="height:28px"></i><i style="height:42px"></i><i style="height:24px"></i><i style="height:16px"></i><i style="height:32px"></i><i style="height:20px"></i><i style="height:10px"></i></span><strong>Дайте звуку новую форму</strong><span>Перетащите аудио или видео · либо выберите файл</span></button><input id="file" type="file" accept=".mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.aiff,.aif,.wma,.mp4,.webm,.webv,.mov,.mkv,.avi,.m4v" hidden><div class="format-list"><span>MP3</span><span>WAV</span><span>M4A</span><span>AAC</span><span>OGG</span><span>OPUS</span><span>FLAC</span><span>AIFF</span><span>WMA</span><span>MP4</span><span>WEBM</span><span>MOV</span><span>MKV</span><span>AVI</span></div><div class="telemost-note"><span style="font-size:20px">◈</span><div><b>Запись из Телемоста? Просто перенесите файл.</b><br>WebM поддерживается. Звук можно извлечь отдельно от видео.</div></div><div class="detail"><span>До 1 ГБ · до 4 часов</span><span>Русский язык</span></div><div id="selected" hidden><div class="divider"></div><div class="media-heading"><div><b id="selectedName"></b><div id="sourceMeta" class="source-meta"></div></div><span id="sourceBadge" class="tag">МЕДИА</span></div><div class="preview-label">ПРОСЛУШИВАНИЕ ИСХОДНОГО ФАЙЛА · ЕСЛИ ПОДДЕРЖИВАЕТСЯ БРАУЗЕРОМ</div><audio id="player" controls preload="metadata"></audio><div class="detail"><span>Предварительная длительность</span><b id="duration">Определяем…</b></div><div class="detail"><span>Стоимость по тарифу</span><b id="filePrice">—</b></div><div class="extract-actions"><button id="extract" class="primary" disabled>Распознать запись ↗</button></div><div id="mediaStatus" class="media-status" role="status" aria-live="polite">Выберите файл для локальной транскрибации.</div><div id="audioResult" class="result-audio" hidden><strong id="jobProgressLabel">Распознавание…</strong><div class="detail"><span>Прогресс</span><b id="jobProgress">0%</b></div><p class="fine">Длинные записи режутся на фрагменты ~20 с (как в VRainD/gigaamui), короткие ≤25 с идут одним проходом.</p></div><p class="fine">Обработка на этом компьютере: извлечение звука и распознавание длинного аудио/видео. Запись не уходит во внешние облака ASR.</p></div><div class="workflow"><div><div class="number">01 / ИСТОЧНИК</div><b>Аудио или видео</b><span>Один файл — один сценарий</span></div><div><div class="number">02 / РАСПОЗНАВАНИЕ</div><b>Длинная запись</b><span>Чанки ~20 с · локальный ASR</span></div><div><div class="number">03 / ТЕКСТ</div><b>Транскрипт</b><span>TXT · SRT · VTT</span></div></div></div><div class="card"><div class="eyebrow">ПРОСТАЯ АРИФМЕТИКА</div><div style="margin-top:17px" class="price">0,06 ₽ <small>/ минута аудио</small></div><p class="muted" style="font-size:12px">Только длительность записи.<br>Без подписки и скрытых пакетов.</p><div class="divider"></div><div class="detail"><span>Шаг тарификации</span><b>1 секунда</b></div><div class="detail"><span>Списание</span><b>После результата</b></div><button class="full primary" id="example">Посмотреть пример результата ↗</button><p class="fine">3,60 ₽ за час записи. Оплата пока не подключена.</p></div></div><div class="section"><div class="title"><h2>Последние записи <span class="tag">ВАШИ</span></h2><button data-view="records">Все записи ↗</button></div><div id="recent"></div></div></section>
+<section id="records" class="view" hidden><div class="hero"><div class="eyebrow">БИБЛИОТЕКА</div><h1>Ничего не теряется.</h1><p>Записи и результаты в одном пространстве.</p></div><label for="search">Поиск по названию</label><input id="search" placeholder="Найти запись…"><div id="allRecords" class="section"></div><p class="fine" id="recordsHint">История ваших распознаваний из ClickHouse.</p></section>
 <section id="wallet" class="view" hidden><div class="hero"><div class="eyebrow">БАЛАНС И ИСПОЛЬЗОВАНИЕ</div><h1>Платите за время.<br>Сохраняйте главное.</h1><p>Предоплата токенами. 1 токен = 1 ₽. Пополнение и промокод — через локальный API студии.</p></div><div class="grid"><div class="card"><h2>Баланс · токены</h2><p class="fine" style="margin-top:0">1 токен = 1 ₽ · тариф 0,06 ток./мин</p><div class="metrics"><div><span class="muted">Доступно</span><b id="walletAvailable">—</b></div><div><span class="muted">В резерве</span><b id="walletHeld">—</b></div><div><span class="muted">Всего</span><b id="walletTotal">—</b></div></div><div class="amounts"><button data-amount="100">100 ток.</button><button data-amount="300">300 ток.</button><button data-amount="1000">1 000 ток.</button></div><label for="topup">Пополнение, токены (= ₽ 1:1)</label><input type="number" id="topup" min="100" max="100000" value="300"><label for="promoCode">Промокод</label><input type="text" id="promoCode" placeholder="Если есть" autocomplete="off" spellcheck="false"><div class="rowactions" style="margin-top:12px"><button type="button" id="promoApply">Применить промокод</button></div><p class="fine" id="promoPreview"></p><button class="primary full" id="pay" style="margin-top:16px">Пополнить токены</button><p class="fine" id="payHint">Онлайн: ЮMoney + касса (PAYMENT_DRIVER=yoomoney). Без секретов — stub; локально: admin credit. Зачисление 1:1.</p><div class="divider"></div><h2>История</h2><div id="walletTx" class="section"></div></div><div class="card"><h2>Калькулятор стоимости</h2><div class="two"><div><label for="minutes">Минуты</label><input id="minutes" type="number" value="17" min="0" max="240"></div><div><label for="seconds">Секунды</label><input id="seconds" type="number" value="42" min="0" max="59"></div></div><div class="divider"></div><span class="muted">За вашу запись</span><div class="price" id="calc">1,07 ток.</div><p class="fine">Серверная формула (целые доли токена). 1 токен = 1 ₽. Максимум — 4 часа.</p></div></div></section>
-<section id="settings" class="view" hidden><div class="hero"><div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</div><h1>Всё под вашим контролем.</h1><p>Предпросмотр настроек будущего аккаунта.</p></div><div class="card mini"><h2>Профиль и безопасность</h2><label for="name">Имя</label><input id="name" value="Владимир" maxlength="80"><label for="email">Email · демонстрационный</label><input id="email" value="demo@example.com" readonly><div class="notice">В продукте: подтверждение email, защищённые сессии, восстановление пароля и выход со всех устройств.</div><button id="save">Сохранить имя в макете</button><div class="divider"></div><h2>Хранение записей</h2><div class="detail"><span>Исходное аудио</span><b>7 дней</b></div><div class="detail"><span>Транскрипты</span><b>30 дней</b></div><p class="fine">Настройки макета не создают аккаунт и не сохраняются после перезагрузки.</p></div></section>
+<section id="settings" class="view" hidden><div class="hero"><div class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</div><h1>Всё под вашим контролем.</h1><p>Профиль аккаунта и параметры хранения.</p></div><div class="card mini"><h2>Профиль и безопасность</h2><label for="name">Имя</label><input id="name" maxlength="80" autocomplete="name"><label for="email">Email</label><input id="email" readonly><div class="notice">Сессии: opaque token в HttpOnly cookie. Пароль хранится как bcrypt-hash. Роль: <span id="settingsRole">user</span>.</div><button type="button" id="save">Обновить отображаемое имя</button><div class="divider"></div><h2>Хранение записей</h2><div class="detail"><span>Исходное аудио</span><b>7 дней</b></div><div class="detail"><span>Транскрипты (ClickHouse)</span><b>30 дней</b></div><p class="fine">Транскрипты привязаны к вашему user_id и недоступны другим аккаунтам.</p></div></section>
 <section id="editor" class="view" hidden><div class="hero"><div class="eyebrow" id="editorEyebrow">РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ</div><h1 id="editorTitle">Интервью о будущем</h1><p id="editorLead">Текст записи. Можно отредактировать и скачать.</p></div><div class="card"><div class="title"><h2>Транскрипт</h2><div class="rowactions"><button id="copy">Копировать</button><button id="exportSrt">SRT ↓</button><button id="exportVtt">VTT ↓</button><button class="primary" id="export">TXT ↓</button></div></div><label for="transcript">Текст записи</label><textarea id="transcript"></textarea><p class="fine" id="editorFine">После распознавания здесь появится текст вашей записи. Изменения хранятся до перезагрузки страницы.</p></div></section>
 <footer class="footer"><span>ГОРИЗОНТ / АВТОНОМНАЯ ТРАНСКРИБАЦИЯ</span><span>Дизайн-концепция · 2026</span></footer></main></div><div class="toast" role="status" aria-live="polite" id="toast"></div>
 <script>
-const $=id=>document.getElementById(id);const titles={studio:'Студия',records:'Мои записи',wallet:'Баланс',settings:'Настройки',editor:'Транскрипт'};let toastTimer,mediaUrl;
-function show(id){document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!==id);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$('breadcrumb').textContent=titles[id];window.scrollTo(0,0);if(id==='wallet')refreshWallet()}
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+const $=id=>document.getElementById(id);
+const titles={studio:'Студия',records:'Мои записи',wallet:'Баланс',settings:'Настройки',editor:'Транскрипт'};
+let toastTimer,mediaUrl,currentUser=null,authMode='login',recordsCache=[];
+const apiHeaders={'X-Gorizont-Client':'local-preview','Content-Type':'application/json'};
+function show(id){
+  document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!==id);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));
+  $('breadcrumb').textContent=titles[id];
+  window.scrollTo(0,0);
+  if(id==='wallet')refreshWallet();
+  if(id==='records'||id==='studio')refreshRecords();
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{if(currentUser)show(b.dataset.view)});
 function notify(message){$('toast').textContent=message;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').textContent='',5500)}
 const RATE_KOPECKS_PER_MINUTE=6;
 const costKopecks=seconds=>Math.ceil(Math.round(seconds*16000)*RATE_KOPECKS_PER_MINUTE/(16000*60));
 const rub=kopecks=>(kopecks/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₽';
 const tokens=kopecks=>(kopecks/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' ток.';
-const apiHeaders={'X-Gorizont-Client':'local-preview','Content-Type':'application/json'};
 let serverQuoteCache=new Map();
 async function serverQuote(seconds){
- const key=String(Math.round(seconds*1000)/1000);
- if(serverQuoteCache.has(key))return serverQuoteCache.get(key);
- try{
-  const r=await fetch('/api/quote?durationSeconds='+encodeURIComponent(seconds));
-  if(!r.ok)throw new Error('quote');
-  const q=await r.json();
-  serverQuoteCache.set(key,q);
-  return q;
- }catch{return null}
+  const key=String(Math.round(seconds*1000)/1000);
+  if(serverQuoteCache.has(key))return serverQuoteCache.get(key);
+  try{
+    const r=await fetch('/api/quote?durationSeconds='+encodeURIComponent(seconds));
+    if(!r.ok)throw new Error('quote');
+    const q=await r.json();
+    serverQuoteCache.set(key,q);
+    return q;
+  }catch{return null}
 }
-const records=[{name:'Интервью о будущем',date:'16 сентября',time:'17:42',cost:107},{name:'Командная встреча',date:'15 сентября',time:'32:10',cost:193},{name:'Идея нового проекта',date:'14 сентября',time:'04:28',cost:27}];
-function render(target,rows){const root=$(target);root.replaceChildren();if(!rows.length){const p=document.createElement('p');p.className='muted';p.textContent='Записи не найдены.';root.append(p);return}const table=document.createElement('table');table.className='table';table.innerHTML='<thead><tr><th>Запись</th><th>Длительность</th><th>Стоимость</th><th>Статус</th><th></th></tr></thead>';const body=document.createElement('tbody');rows.forEach(r=>{const tr=document.createElement('tr');tr.innerHTML='<td><div class="filename"><span class="fileicon">≋</span><div><span class="recordname"></span><br><small class="muted"></small></div></div></td><td class="time"></td><td class="cost"></td><td><span class="status">Готово</span></td><td><button aria-label="Открыть пример">↗</button></td>';tr.querySelector('.recordname').textContent=r.name;tr.querySelector('small').textContent=r.date;tr.querySelector('.time').textContent=r.time;tr.querySelector('.cost').textContent=rub(r.cost);tr.querySelector('button').onclick=()=>{$('editorEyebrow').textContent='ПРИМЕР РЕЗУЛЬТАТА';$('editorTitle').textContent=r.name;$('editorLead').textContent='Демонстрационный текст.';$('transcript').value=DEMO_TEXT;lastExports={txt:DEMO_TEXT,srt:'',vtt:''};show('editor')};body.append(tr)});table.append(body);root.append(table)}render('recent',records);render('allRecords',records);
-$('search').oninput=()=>render('allRecords',records.filter(r=>r.name.toLowerCase().includes($('search').value.toLowerCase())));
+function fmtDuration(sec){
+  const s=Math.max(0,Math.round(Number(sec)||0));
+  return String(Math.floor(s/60))+':'+String(s%60).padStart(2,'0');
+}
+function fmtDate(iso){
+  if(!iso)return '—';
+  try{return new Date(iso).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}
+  catch{return String(iso)}
+}
+function statusLabel(st){
+  if(st==='done')return 'Готово';
+  if(st==='failed')return 'Ошибка';
+  if(st==='running')return 'В работе';
+  if(st==='queued')return 'В очереди';
+  return st||'—';
+}
+async function openJob(job){
+  if(job.status!=='done'){notify(job.error||('Статус: '+statusLabel(job.status)));return}
+  try{
+    const [txtRes,srtRes,vttRes]=await Promise.all(['txt','srt','vtt'].map(ext=>fetch('/api/jobs/'+job.id+'/'+ext,{credentials:'same-origin'})));
+    if(!txtRes.ok)throw new Error('Не удалось открыть запись.');
+    lastExports.txt=await txtRes.text();
+    lastExports.srt=srtRes.ok?await srtRes.text():'';
+    lastExports.vtt=vttRes.ok?await vttRes.text():'';
+    $('editorEyebrow').textContent='РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ';
+    $('editorTitle').textContent=job.title||'Запись';
+    $('editorLead').textContent='Текст вашей записи. Можно отредактировать и скачать TXT / SRT / VTT.';
+    $('editorFine').textContent='Сохранено в ClickHouse для вашего аккаунта.';
+    $('transcript').value=lastExports.txt.trim();
+    show('editor');
+  }catch(e){notify(e.message||'Ошибка открытия')}
+}
+function render(target,rows){
+  const root=$(target);root.replaceChildren();
+  if(!rows.length){
+    const p=document.createElement('p');p.className='muted';
+    p.textContent=currentUser?'Пока нет записей. Распознайте файл в Студии.':'Войдите, чтобы увидеть записи.';
+    root.append(p);return;
+  }
+  const table=document.createElement('table');table.className='table';
+  table.innerHTML='<thead><tr><th>Запись</th><th>Длительность</th><th>Стоимость</th><th>Статус</th><th></th></tr></thead>';
+  const body=document.createElement('tbody');
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><div class="filename"><span class="fileicon">≋</span><div><span class="recordname"></span><br><small class="muted"></small></div></div></td><td class="time"></td><td class="cost"></td><td><span class="status"></span></td><td><button type="button" aria-label="Открыть">↗</button></td>';
+    tr.querySelector('.recordname').textContent=r.title||r.name||'Запись';
+    tr.querySelector('small').textContent=fmtDate(r.createdAt||r.date);
+    tr.querySelector('.time').textContent=r.durationSeconds!=null?fmtDuration(r.durationSeconds):(r.time||'—');
+    const cost=r.costKopecks!=null?r.costKopecks:r.cost;
+    tr.querySelector('.cost').textContent=cost!=null?tokens(cost):'—';
+    tr.querySelector('.status').textContent=statusLabel(r.status||'done');
+    tr.querySelector('button').onclick=()=>openJob(r);
+    body.append(tr);
+  });
+  table.append(body);root.append(table);
+}
+async function refreshRecords(){
+  if(location.protocol!=='http:'||!currentUser){render('recent',[]);render('allRecords',[]);return}
+  try{
+    const r=await fetch('/api/jobs?limit=50',{credentials:'same-origin'});
+    if(r.status===401){showAuth();return}
+    const data=await r.json();
+    recordsCache=data.items||[];
+    const q=($('search').value||'').toLowerCase();
+    const filtered=q?recordsCache.filter(x=>String(x.title||'').toLowerCase().includes(q)):recordsCache;
+    render('recent',recordsCache.slice(0,5));
+    render('allRecords',filtered);
+  }catch{
+    render('recent',[]);render('allRecords',[]);
+  }
+}
+$('search').oninput=()=>{
+  const q=$('search').value.toLowerCase();
+  render('allRecords',recordsCache.filter(x=>String(x.title||'').toLowerCase().includes(q)));
+};
+const DEMO_TEXT='Будущее начинается не с технологии, а с вопроса: что мы хотим изменить?\n\nСегодня мы обсуждаем пространство, в котором идеи не теряются. Разговор становится текстом, текст — решением, а решение — следующим шагом.\n\nНаша задача — сохранить главное и дать человеку возможность вернуться к любой мысли.';
 let chosenFile=null, studioReady=false, working=false, selectionVersion=0;
 let lastExports={txt:'',srt:'',vtt:''};
-const DEMO_TEXT='Будущее начинается не с технологии, а с вопроса: что мы хотим изменить?\n\nСегодня мы обсуждаем пространство, в котором идеи не теряются. Разговор становится текстом, текст — решением, а решение — следующим шагом.\n\nНаша задача — сохранить главное и дать человеку возможность вернуться к любой мысли.';
 const state=(text,kind='idle')=>{$('mediaStatus').textContent=text;$('mediaStatus').dataset.state=kind};
 const setProgress=(ratio,label)=>{const pct=Math.round(Math.min(1,Math.max(0,ratio||0))*100);$('jobProgress').textContent=pct+'%';if(label)$('jobProgressLabel').textContent=label;$('audioResult').hidden=false};
-if(location.protocol==='http:'){fetch('/api/capabilities').then(r=>r.json()).then(c=>{studioReady=c.extraction===true&&c.transcription===true;$('extract').disabled=!chosenFile||!studioReady}).catch(()=>{})}
-$('drop').onclick=()=>$('file').click();$('file').onchange=e=>choose(e.target.files[0]);$('drop').ondragover=e=>{e.preventDefault();if(!working)$('drop').classList.add('drag')};$('drop').ondragleave=()=>$('drop').classList.remove('drag');$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');if(e.dataTransfer.files.length>1){notify('Добавьте один файл за раз.');return}choose(e.dataTransfer.files[0])};
+
+function applyUser(user){
+  currentUser=user;
+  document.querySelector('.shell').dataset.authed=user?'1':'0';
+  if(!user){
+    $('profileName').textContent='—';
+    $('profileMeta').textContent='Нет сессии';
+    $('profileAvatar').textContent='?';
+    $('headerTag').textContent='ВХОД';
+    return;
+  }
+  $('profileName').textContent=user.name||user.email;
+  $('profileMeta').textContent=user.role==='admin'?'Администратор':'Аккаунт';
+  $('profileAvatar').textContent=(user.name||user.email||'?')[0].toUpperCase();
+  $('name').value=user.name||'';
+  $('email').value=user.email||'';
+  $('settingsRole').textContent=user.role||'user';
+  $('headerTag').textContent='СЕССИЯ · '+(user.role||'user').toUpperCase();
+}
+function showAuth(){
+  applyUser(null);
+  $('authGate').hidden=false;
+  document.querySelector('.shell').dataset.authed='0';
+}
+function hideAuth(){
+  $('authGate').hidden=true;
+  document.querySelector('.shell').dataset.authed='1';
+}
+function setAuthMode(mode){
+  authMode=mode;
+  const login=mode==='login';
+  $('tabLogin').classList.toggle('active',login);
+  $('tabRegister').classList.toggle('active',!login);
+  $('tabLogin').setAttribute('aria-selected',login?'true':'false');
+  $('tabRegister').setAttribute('aria-selected',login?'false':'true');
+  $('nameField').hidden=login;
+  $('authTitle').textContent=login?'Вход в студию':'Регистрация';
+  $('authSubmit').textContent=login?'Войти':'Создать аккаунт';
+  $('authPassword').autocomplete=login?'current-password':'new-password';
+  $('authError').textContent='';
+}
+$('tabLogin').onclick=()=>setAuthMode('login');
+$('tabRegister').onclick=()=>setAuthMode('register');
+$('authForm').onsubmit=async(e)=>{
+  e.preventDefault();
+  $('authError').textContent='';
+  const email=$('authEmail').value.trim();
+  const password=$('authPassword').value;
+  const name=$('authName').value.trim();
+  const path=authMode==='login'?'/api/auth/login':'/api/auth/register';
+  const body=authMode==='login'?{email,password}:{email,password,name};
+  try{
+    const r=await fetch(path,{method:'POST',headers:apiHeaders,credentials:'same-origin',body:JSON.stringify(body)});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok){$('authError').textContent=data.error||'Не удалось.';return}
+    applyUser(data.user);
+    hideAuth();
+    studioReady=true;
+    $('extract').disabled=!chosenFile||!studioReady;
+    notify(authMode==='login'?'Добро пожаловать.':'Аккаунт создан.');
+    await refreshRecords();
+    await refreshWallet();
+  }catch{$('authError').textContent='Нет связи с сервером.'}
+};
+$('logoutBtn').onclick=async()=>{
+  try{await fetch('/api/auth/logout',{method:'POST',headers:apiHeaders,credentials:'same-origin',body:'{}'})}catch{}
+  recordsCache=[];
+  showAuth();
+  setAuthMode('login');
+  notify('Вы вышли из аккаунта.');
+};
+
+async function bootSession(){
+  if(location.protocol!=='http:'){showAuth();$('authHint').textContent='Откройте студию через локальный сервер: node tools/preview.mjs';return}
+  try{
+    const caps=await fetch('/api/capabilities').then(r=>r.json());
+    studioReady=caps.extraction===true&&caps.transcription===true;
+    $('extract').disabled=!chosenFile||!studioReady;
+    if(caps.auth&&caps.auth.demoSeed){
+      $('authHint').textContent='Демо-сид включён (AUTH_DEMO_SEED). Можно зарегистрировать свой аккаунт.';
+    }
+  }catch{}
+  try{
+    const r=await fetch('/api/me',{credentials:'same-origin'});
+    if(r.ok){
+      const data=await r.json();
+      applyUser(data.user);
+      hideAuth();
+      await refreshRecords();
+      await refreshWallet();
+      return;
+    }
+  }catch{}
+  showAuth();
+  setAuthMode('login');
+}
+
+$('drop').onclick=()=>$('file').click();
+$('file').onchange=e=>choose(e.target.files[0]);
+$('drop').ondragover=e=>{e.preventDefault();if(!working)$('drop').classList.add('drag')};
+$('drop').ondragleave=()=>$('drop').classList.remove('drag');
+$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('drag');if(e.dataTransfer.files.length>1){notify('Добавьте один файл за раз.');return}choose(e.dataTransfer.files[0])};
 function choose(file){
- if(!file||working)return;
- if(file.size===0){notify('Выбран пустой файл.');return}
- if(file.size>1024**3){notify('Файл больше 1 ГБ. Выберите запись меньшего размера.');return}
- if(!/\.(mp3|wav|m4a|aac|ogg|opus|flac|aiff|aif|wma|mp4|webm|webv|mov|mkv|avi|m4v)$/i.test(file.name)){notify('Этот формат не поддерживается. Выберите аудио или видео из списка.');return}
- chosenFile=file;selectionVersion++;const version=selectionVersion;const video=/\.(mp4|webm|webv|mov|mkv|avi|m4v)$/i.test(file.name);
- $('player').pause();
- if(mediaUrl)URL.revokeObjectURL(mediaUrl);
- $('selected').hidden=false;$('selectedName').textContent=file.name;$('sourceMeta').textContent=(file.size/1024/1024).toFixed(1)+' МБ · '+(video?'видеоконтейнер':'аудиозапись');$('sourceBadge').textContent=video?'ВИДЕО → ТЕКСТ':'АУДИО → ТЕКСТ';
- $('duration').textContent='Определяем…';$('filePrice').textContent='—';$('audioResult').hidden=true;$('extract').textContent='Распознать запись ↗';$('extract').disabled=!studioReady;
- state(studioReady?'Готово к распознаванию длинной записи. Исходный файл не изменится.':'Для распознавания откройте студию через локальный сервер: node tools/preview.mjs');
- mediaUrl=URL.createObjectURL(file);const p=$('player');
- p.onloadedmetadata=()=>{if(version!==selectionVersion)return;const d=p.duration;if(!Number.isFinite(d)||d<=0){$('duration').textContent='Определим при обработке';return}if(d>14400){$('duration').textContent='Больше 4 часов';$('filePrice').textContent='Превышен лимит';return}displayDuration(d,true)};
- p.onerror=()=>{if(version===selectionVersion)$('duration').textContent='Определим при обработке'};p.src=mediaUrl;
+  if(!file||working)return;
+  if(!currentUser){notify('Сначала войдите в аккаунт.');showAuth();return}
+  if(file.size===0){notify('Выбран пустой файл.');return}
+  if(file.size>1024**3){notify('Файл больше 1 ГБ. Выберите запись меньшего размера.');return}
+  if(!/\.(mp3|wav|m4a|aac|ogg|opus|flac|aiff|aif|wma|mp4|webm|webv|mov|mkv|avi|m4v)$/i.test(file.name)){notify('Этот формат не поддерживается. Выберите аудио или видео из списка.');return}
+  chosenFile=file;selectionVersion++;const version=selectionVersion;const video=/\.(mp4|webm|webv|mov|mkv|avi|m4v)$/i.test(file.name);
+  $('player').pause();
+  if(mediaUrl)URL.revokeObjectURL(mediaUrl);
+  $('selected').hidden=false;$('selectedName').textContent=file.name;$('sourceMeta').textContent=(file.size/1024/1024).toFixed(1)+' МБ · '+(video?'видеоконтейнер':'аудиозапись');$('sourceBadge').textContent=video?'ВИДЕО → ТЕКСТ':'АУДИО → ТЕКСТ';
+  $('duration').textContent='Определяем…';$('filePrice').textContent='—';$('audioResult').hidden=true;$('extract').textContent='Распознать запись ↗';$('extract').disabled=!studioReady;
+  state(studioReady?'Готово к распознаванию длинной записи. Исходный файл не изменится.':'Для распознавания откройте студию через локальный сервер: node tools/preview.mjs');
+  mediaUrl=URL.createObjectURL(file);const p=$('player');
+  p.onloadedmetadata=()=>{if(version!==selectionVersion)return;const d=p.duration;if(!Number.isFinite(d)||d<=0){$('duration').textContent='Определим при обработке';return}if(d>14400){$('duration').textContent='Больше 4 часов';$('filePrice').textContent='Превышен лимит';return}displayDuration(d,true)};
+  p.onerror=()=>{if(version===selectionVersion)$('duration').textContent='Определим при обработке'};p.src=mediaUrl;
 }
 function displayDuration(d,estimated=false,serverCostKopecks=null){
- const s=Math.ceil(d);
- $('duration').textContent=String(Math.floor(s/60))+':'+String(s%60).padStart(2,'0');
- if(serverCostKopecks!=null){$('filePrice').textContent=rub(serverCostKopecks);return}
- $('filePrice').textContent=(estimated?'≈ ':'')+rub(costKopecks(d));
- if(!estimated&&location.protocol==='http:'){
-  serverQuote(d).then(q=>{if(q&&q.costKopecks!=null)$('filePrice').textContent=rub(q.costKopecks)});
- }
+  const s=Math.ceil(d);
+  $('duration').textContent=String(Math.floor(s/60))+':'+String(s%60).padStart(2,'0');
+  if(serverCostKopecks!=null){$('filePrice').textContent=rub(serverCostKopecks);return}
+  $('filePrice').textContent=(estimated?'≈ ':'')+rub(costKopecks(d));
+  if(!estimated&&location.protocol==='http:'){
+    serverQuote(d).then(q=>{if(q&&q.costKopecks!=null)$('filePrice').textContent=rub(q.costKopecks)});
+  }
 }
 async function pollJob(id){
- for(;;){
-  const response=await fetch('/api/jobs/'+id);
-  if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||'Не удалось получить статус задачи.')}
-  const job=await response.json();
-  setProgress(job.progress||0, job.status==='queued'?'В очереди…':job.status==='running'?'Распознаём длинную запись…':'Готово');
-  if(job.durationSeconds)displayDuration(job.durationSeconds,false,job.costKopecks);
-  if(job.status==='done')return job;
-  if(job.status==='failed')throw new Error(job.error||'Распознавание не удалось.');
-  await new Promise(r=>setTimeout(r,500));
- }
+  for(;;){
+    const response=await fetch('/api/jobs/'+id,{credentials:'same-origin'});
+    if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||'Не удалось получить статус задачи.')}
+    const job=await response.json();
+    setProgress(job.progress||0, job.status==='queued'?'В очереди…':job.status==='running'?'Распознаём длинную запись…':'Готово');
+    if(job.durationSeconds)displayDuration(job.durationSeconds,false,job.costKopecks);
+    if(job.status==='done')return job;
+    if(job.status==='failed')throw new Error(job.error||'Распознавание не удалось.');
+    await new Promise(r=>setTimeout(r,500));
+  }
 }
 async function refreshWallet(){
- if(location.protocol!=='http:')return;
- try{
-  const [w,tx]=await Promise.all([
-   fetch('/api/wallet').then(r=>r.json()),
-   fetch('/api/wallet/transactions').then(r=>r.json())
-  ]);
-  $('walletAvailable').textContent=tokens(w.availableKopecks);
-  $('walletHeld').textContent=tokens(w.heldKopecks);
-  $('walletTotal').textContent=tokens(w.balanceKopecks);
-  const root=$('walletTx');root.replaceChildren();
-  const items=tx.items||[];
-  if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Пока нет операций. Начислите токены через admin CLI или промокод.';root.append(p)}
-  else{
-   const table=document.createElement('table');table.className='table';
-   table.innerHTML='<thead><tr><th>Тип</th><th>Токены</th><th>Комментарий</th></tr></thead>';
-   const body=document.createElement('tbody');
-   items.slice(0,12).forEach(e=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td></td><td></td><td class="muted"></td>';
-    tr.children[0].textContent=e.type;
-    tr.children[1].textContent=(e.type==='debit'?'−':'+')+tokens(e.amountKopecks);
-    tr.children[2].textContent=e.reason||e.businessKey||'';
-    body.append(tr);
-   });
-   table.append(body);root.append(table);
-  }
-  const pay=await fetch('/api/payments/status').then(r=>r.json()).catch(()=>null);
-  if(pay){
-   const unit=' · 1 токен = 1 ₽';
-   $('payHint').textContent=pay.configured
-    ?('Провайдер: '+pay.driver+' · онлайн-оплата настроена'+unit+'.')
-    :('Провайдер: '+(pay.driver||'stub')+' (рекомендуется yoomoney + касса) · без секретов реальных списаний нет'+unit+'. Локально: node tools/billing/admin-cli.mjs credit …');
-  }
- }catch{/* preview without server */}
+  if(location.protocol!=='http:'||!currentUser)return;
+  try{
+    const [w,tx]=await Promise.all([
+      fetch('/api/wallet',{credentials:'same-origin'}).then(r=>r.json()),
+      fetch('/api/wallet/transactions',{credentials:'same-origin'}).then(r=>r.json())
+    ]);
+    if(w.error)return;
+    $('walletAvailable').textContent=tokens(w.availableKopecks);
+    $('walletHeld').textContent=tokens(w.heldKopecks);
+    $('walletTotal').textContent=tokens(w.balanceKopecks);
+    const root=$('walletTx');root.replaceChildren();
+    const items=tx.items||[];
+    if(!items.length){const p=document.createElement('p');p.className='muted';p.textContent='Пока нет операций. Начислите токены через admin CLI или промокод.';root.append(p)}
+    else{
+      const table=document.createElement('table');table.className='table';
+      table.innerHTML='<thead><tr><th>Тип</th><th>Токены</th><th>Комментарий</th></tr></thead>';
+      const body=document.createElement('tbody');
+      items.slice(0,12).forEach(e=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td></td><td></td><td class="muted"></td>';
+        tr.children[0].textContent=e.type;
+        tr.children[1].textContent=(e.type==='debit'?'−':'+')+tokens(e.amountKopecks);
+        tr.children[2].textContent=e.reason||e.businessKey||'';
+        body.append(tr);
+      });
+      table.append(body);root.append(table);
+    }
+    const pay=await fetch('/api/payments/status').then(r=>r.json()).catch(()=>null);
+    if(pay){
+      const unit=' · 1 токен = 1 ₽';
+      $('payHint').textContent=pay.configured
+        ?('Провайдер: '+pay.driver+' · онлайн-оплата настроена'+unit+'.')
+        :('Провайдер: '+(pay.driver||'stub')+' (рекомендуется yoomoney + касса) · без секретов реальных списаний нет'+unit+'. Локально: node tools/billing/admin-cli.mjs credit …');
+    }
+  }catch{/* preview without server */}
 }
 $('extract').onclick=async()=>{
- if(!chosenFile||working||!studioReady)return;
- working=true;$('extract').disabled=true;$('drop').disabled=true;$('file').disabled=true;$('extract').textContent='Распознаём…';
- setProgress(0.02,'Извлекаем звук и запускаем распознавание…');
- state('Обрабатываем длинную запись на этом компьютере. Большой файл может занять несколько минут.');
- try{
-  const response=await fetch('/api/jobs',{method:'POST',headers:{'X-Gorizont-Client':'local-preview','Content-Type':'application/octet-stream','X-Gorizont-Title':encodeURIComponent(chosenFile.name)},body:chosenFile});
-  if(!response.ok){const error=await response.json();throw new Error(error.error||'Не удалось запустить распознавание.')}
-  const created=await response.json();
-  await pollJob(created.id);
-  const [txtRes,srtRes,vttRes]=await Promise.all(['txt','srt','vtt'].map(ext=>fetch('/api/jobs/'+created.id+'/'+ext)));
-  if(!txtRes.ok)throw new Error('Не удалось получить текст.');
-  lastExports.txt=await txtRes.text();
-  lastExports.srt=srtRes.ok?await srtRes.text():'';
-  lastExports.vtt=vttRes.ok?await vttRes.text():'';
-  $('editorEyebrow').textContent='РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ';
-  $('editorTitle').textContent=chosenFile.name.replace(/\.[^.]+$/,'');
-  $('editorLead').textContent='Текст вашей записи. Можно отредактировать и скачать TXT / SRT / VTT.';
-  $('editorFine').textContent='Результат локального long-form ASR. Изменения хранятся до перезагрузки страницы.';
-  $('transcript').value=lastExports.txt.trim();
-  state('Готово. Текст открыт в редакторе.','success');
-  setProgress(1,'Распознавание завершено');
-  show('editor');
- }catch(error){state(error.message||'Нет связи с локальным сервером.','error')}
- finally{working=false;$('extract').disabled=false;$('drop').disabled=false;$('file').disabled=false;$('extract').textContent='Распознать запись ↗'}
+  if(!currentUser){notify('Сначала войдите в аккаунт.');showAuth();return}
+  if(!chosenFile||working||!studioReady)return;
+  working=true;$('extract').disabled=true;$('drop').disabled=true;$('file').disabled=true;$('extract').textContent='Распознаём…';
+  setProgress(0.02,'Извлекаем звук и запускаем распознавание…');
+  state('Обрабатываем длинную запись на этом компьютере. Большой файл может занять несколько минут.');
+  try{
+    const response=await fetch('/api/jobs',{method:'POST',credentials:'same-origin',headers:{'X-Gorizont-Client':'local-preview','Content-Type':'application/octet-stream','X-Gorizont-Title':encodeURIComponent(chosenFile.name)},body:chosenFile});
+    if(response.status===401){showAuth();throw new Error('Сессия истекла. Войдите снова.')}
+    if(!response.ok){const error=await response.json();throw new Error(error.error||'Не удалось запустить распознавание.')}
+    const created=await response.json();
+    await pollJob(created.id);
+    const [txtRes,srtRes,vttRes]=await Promise.all(['txt','srt','vtt'].map(ext=>fetch('/api/jobs/'+created.id+'/'+ext,{credentials:'same-origin'})));
+    if(!txtRes.ok)throw new Error('Не удалось получить текст.');
+    lastExports.txt=await txtRes.text();
+    lastExports.srt=srtRes.ok?await srtRes.text():'';
+    lastExports.vtt=vttRes.ok?await vttRes.text():'';
+    $('editorEyebrow').textContent='РЕЗУЛЬТАТ РАСПОЗНАВАНИЯ';
+    $('editorTitle').textContent=chosenFile.name.replace(/\.[^.]+$/,'');
+    $('editorLead').textContent='Текст вашей записи. Можно отредактировать и скачать TXT / SRT / VTT.';
+    $('editorFine').textContent='Результат сохранён в ClickHouse и доступен в «Мои записи».';
+    $('transcript').value=lastExports.txt.trim();
+    state('Готово. Текст открыт в редакторе.','success');
+    setProgress(1,'Распознавание завершено');
+    await refreshRecords();
+    show('editor');
+  }catch(error){state(error.message||'Нет связи с локальным сервером.','error')}
+  finally{working=false;$('extract').disabled=false;$('drop').disabled=false;$('file').disabled=false;$('extract').textContent='Распознать запись ↗'}
 };
 function downloadText(name,body,type){const url=URL.createObjectURL(new Blob(['\uFEFF'+body],{type:type||'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function calculate(){
- const m=Number($('minutes').value),s=Number($('seconds').value);
- if(!(Number.isInteger(m)&&Number.isInteger(s)&&m>=0&&s>=0&&s<60&&m*60+s<=14400)){$('calc').textContent='Проверьте время';return}
- const seconds=m*60+s;
- const q=location.protocol==='http:'?await serverQuote(seconds):null;
- $('calc').textContent=q?tokens(q.costKopecks):tokens(costKopecks(seconds));
+  const m=Number($('minutes').value),s=Number($('seconds').value);
+  if(!(Number.isInteger(m)&&Number.isInteger(s)&&m>=0&&s>=0&&s<60&&m*60+s<=14400)){$('calc').textContent='Проверьте время';return}
+  const seconds=m*60+s;
+  const q=location.protocol==='http:'?await serverQuote(seconds):null;
+  $('calc').textContent=q?tokens(q.costKopecks):tokens(costKopecks(seconds));
 }
 $('minutes').oninput=()=>{calculate()};$('seconds').oninput=()=>{calculate()};calculate();
 document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>$('topup').value=b.dataset.amount);
 $('promoApply').onclick=async()=>{
- const code=$('promoCode').value.trim();
- if(!code){notify('Введите промокод.');return}
- if(location.protocol!=='http:'){notify('Промокод доступен через локальный сервер.');return}
- const amountRub=Number($('topup').value);
- try{
-  const r=await fetch('/api/promos/validate',{method:'POST',headers:apiHeaders,body:JSON.stringify({code,amountRub})});
-  const data=await r.json();
-  if(!r.ok){notify(data.error||'Промокод недоступен.');$('promoPreview').textContent='';return}
-  $('promoPreview').textContent='Бонус: '+tokens(data.bonusKopecks)+(data.preview&&data.preview.creditKopecks!=null?' · к зачислению после оплаты номинала: '+tokens(data.preview.creditKopecks):'');
-  const redeem=await fetch('/api/promos/redeem',{method:'POST',headers:apiHeaders,body:JSON.stringify({code,amountRub})});
-  const out=await redeem.json();
-  if(!redeem.ok){notify(out.error||'Не удалось применить.');return}
-  notify(out.idempotent?'Промокод уже был применён.':'Зачислено '+tokens(out.bonusKopecks));
-  await refreshWallet();
- }catch{notify('Нет связи с сервером.')}
+  if(!currentUser){notify('Сначала войдите.');return}
+  const code=$('promoCode').value.trim();
+  if(!code){notify('Введите промокод.');return}
+  if(location.protocol!=='http:'){notify('Промокод доступен через локальный сервер.');return}
+  const amountRub=Number($('topup').value);
+  try{
+    const r=await fetch('/api/promos/validate',{method:'POST',headers:apiHeaders,credentials:'same-origin',body:JSON.stringify({code,amountRub})});
+    const data=await r.json();
+    if(!r.ok){notify(data.error||'Промокод недоступен.');$('promoPreview').textContent='';return}
+    $('promoPreview').textContent='Бонус: '+tokens(data.bonusKopecks)+(data.preview&&data.preview.creditKopecks!=null?' · к зачислению после оплаты номинала: '+tokens(data.preview.creditKopecks):'');
+    const redeem=await fetch('/api/promos/redeem',{method:'POST',headers:apiHeaders,credentials:'same-origin',body:JSON.stringify({code,amountRub})});
+    const out=await redeem.json();
+    if(!redeem.ok){notify(out.error||'Не удалось применить.');return}
+    notify(out.idempotent?'Промокод уже был применён.':'Зачислено '+tokens(out.bonusKopecks));
+    await refreshWallet();
+  }catch{notify('Нет связи с сервером.')}
 };
 $('pay').onclick=async()=>{
- const a=Number($('topup').value);
- if(!(a>=100&&a<=100000)){notify('Введите сумму от 100 до 100 000 токенов (= ₽).');return}
- if(location.protocol!=='http:'){notify('Пополнение доступно через локальный сервер.');return}
- try{
-  const r=await fetch('/api/payments',{method:'POST',headers:apiHeaders,body:JSON.stringify({amountRub:a})});
-  const data=await r.json();
-  if(!r.ok){notify(data.error||'Не удалось создать платёж.');return}
-  const msg=data.providerResult?.message||data.payment?.status;
-  const credit=data.creditTokensOnSuccess!=null?(' Зачисление: '+data.creditTokensOnSuccess+' ток. (1:1).'):'';
-  notify(data.payment?.confirmationUrl?'Переход к оплате…':('Платёж '+data.payment.status+'. '+(msg||'Онлайн-эквайринг не подключён — используйте admin credit.')+credit));
-  await refreshWallet();
- }catch{notify('Нет связи с сервером.')}
+  if(!currentUser){notify('Сначала войдите.');return}
+  const a=Number($('topup').value);
+  if(!(a>=100&&a<=100000)){notify('Введите сумму от 100 до 100 000 токенов (= ₽).');return}
+  if(location.protocol!=='http:'){notify('Пополнение доступно через локальный сервер.');return}
+  try{
+    const r=await fetch('/api/payments',{method:'POST',headers:apiHeaders,credentials:'same-origin',body:JSON.stringify({amountRub:a})});
+    const data=await r.json();
+    if(!r.ok){notify(data.error||'Не удалось создать платёж.');return}
+    const msg=data.providerResult?.message||data.payment?.status;
+    const credit=data.creditTokensOnSuccess!=null?(' Зачисление: '+data.creditTokensOnSuccess+' ток. (1:1).'):'';
+    notify(data.payment?.confirmationUrl?'Переход к оплате…':('Платёж '+data.payment.status+'. '+(msg||'Онлайн-эквайринг не подключён — используйте admin credit.')+credit));
+    await refreshWallet();
+  }catch{notify('Нет связи с сервером.')}
 };
-$('save').onclick=()=>{const name=$('name').value.trim();if(!name){notify('Введите имя.');return}document.querySelector('.profile .avatar').textContent=name[0].toUpperCase();notify('Имя изменено только в макете: '+name)};
-if(location.protocol==='http:')refreshWallet();
-$('example').onclick=()=>{$('editorEyebrow').textContent='ПРИМЕР РЕЗУЛЬТАТА';$('editorTitle').textContent=records[0].name;$('editorLead').textContent='Демонстрационный текст. Можно отредактировать и скачать.';$('editorFine').textContent='Это заранее подготовленный пример.';$('transcript').value=DEMO_TEXT;lastExports={txt:DEMO_TEXT,srt:'',vtt:''};show('editor')};
-$('export').onclick=()=>downloadText('gorizont-transcript.txt',$('transcript').value);$('exportSrt').onclick=()=>{if(!lastExports.srt){notify('SRT появится после распознавания файла.');return}downloadText('gorizont-transcript.srt',lastExports.srt)};$('exportVtt').onclick=()=>{if(!lastExports.vtt){notify('VTT появится после распознавания файла.');return}downloadText('gorizont-transcript.vtt',lastExports.vtt)};$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('transcript').value);notify('Текст скопирован.')}catch{$('transcript').select();notify('Текст выделен. Нажмите Ctrl+C для копирования.')}};
-</script></body></html>
+$('save').onclick=()=>{
+  const name=$('name').value.trim();
+  if(!name){notify('Введите имя.');return}
+  if(!currentUser){notify('Сначала войдите.');return}
+  currentUser={...currentUser,name};
+  applyUser(currentUser);
+  notify('Имя обновлено в этой сессии UI: '+name);
+};
+$('example').onclick=()=>{
+  $('editorEyebrow').textContent='ПРИМЕР РЕЗУЛЬТАТА';
+  $('editorTitle').textContent='Пример транскрипта';
+  $('editorLead').textContent='Демонстрационный текст. Можно отредактировать и скачать.';
+  $('editorFine').textContent='Это заранее подготовленный пример (не из ClickHouse).';
+  $('transcript').value=DEMO_TEXT;lastExports={txt:DEMO_TEXT,srt:'',vtt:''};show('editor');
+};
+$('export').onclick=()=>downloadText('gorizont-transcript.txt',$('transcript').value);
+$('exportSrt').onclick=()=>{if(!lastExports.srt){notify('SRT появится после распознавания файла.');return}downloadText('gorizont-transcript.srt',lastExports.srt)};
+$('exportVtt').onclick=()=>{if(!lastExports.vtt){notify('VTT появится после распознавания файла.');return}downloadText('gorizont-transcript.vtt',lastExports.vtt)};
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('transcript').value);notify('Текст скопирован.')}catch{$('transcript').select();notify('Текст выделен. Нажмите Ctrl+C для копирования.')}};
+bootSession();
+</script></script></body></html>

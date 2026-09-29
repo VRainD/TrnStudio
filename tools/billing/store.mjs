@@ -106,6 +106,36 @@ export function demoEmail() {
   return DEMO_EMAIL;
 }
 
+/**
+ * Ensure billing user + wallet rows exist for a real auth user_id.
+ * Demo seed user remains for AUTH_DEMO_SEED / legacy tests.
+ */
+export async function ensureBillingUser({ id, email, name, role = 'user' }) {
+  if (!id) throw new Error('user id required');
+  const now = new Date().toISOString();
+  return withBillingLock((db) => {
+    let user = db.users.find((u) => u.id === id);
+    if (!user) {
+      user = {
+        id,
+        email: email || `${id}@local`,
+        name: name || 'Пользователь',
+        role: role === 'admin' ? 'admin' : 'user',
+        createdAt: now,
+      };
+      db.users.push(user);
+    } else {
+      if (email) user.email = email;
+      if (name) user.name = name;
+      if (role) user.role = role === 'admin' ? 'admin' : 'user';
+    }
+    if (!db.wallets.some((w) => w.userId === id)) {
+      db.wallets.push({ userId: id, balanceKopecks: 0, updatedAt: now });
+    }
+    return { user, wallet: db.wallets.find((w) => w.userId === id) };
+  });
+}
+
 export async function getDbSnapshot() {
   return withBillingLock(async (db) => structuredClone(db));
 }

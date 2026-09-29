@@ -1,5 +1,6 @@
 .local-media/
 .local-billing/
+.local-auth/
 .qa/
 node_modules/
 .env
