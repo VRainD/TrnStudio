@@ -8,6 +8,11 @@ import { Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import { extractAudio, MediaError } from './media.mjs';
+import { costSnapshotFromSeconds } from './billing/cost.mjs';
+import {
+  reserveForJob, captureHoldForJob, releaseHoldForJob,
+} from './billing/wallet.mjs';
+import { billingEnabled, demoUserId } from './billing/store.mjs';
 
 const workerRoot = fileURLToPath(new URL('../worker/', import.meta.url));
 const longformScript = join(workerRoot, 'longform_transcribe.py');
@@ -45,6 +50,9 @@ async function persist(job) {
     title: job.title,
     durationSeconds: job.durationSeconds,
     backend: job.backend,
+    cost: job.cost,
+    holdId: job.holdId,
+    billingEnabled: job.billingEnabled,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   }, null, 2), 'utf8');
@@ -59,6 +67,10 @@ function publicJob(job) {
     title: job.title,
     durationSeconds: job.durationSeconds,
     backend: job.backend,
+    cost: job.cost,
+    costKopecks: job.cost?.cost_kopecks ?? null,
+    holdId: job.holdId,
+    billingEnabled: job.billingEnabled,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
   };
@@ -107,11 +119,13 @@ async function runLongform(job) {
           job.status = 'failed';
           job.error = stderr.trim() || `Транскрибация завершилась с кодом ${code}`;
           job.progress = 1;
+          await releaseHoldForJob({ userId: job.userId, jobId: job.id }).catch(() => {});
         } else {
           const result = JSON.parse(await readFile(resultPath, 'utf8'));
           if (result.status === 'failed') {
             job.status = 'failed';
             job.error = result.error || 'Ошибка распознавания';
+            await releaseHoldForJob({ userId: job.userId, jobId: job.id }).catch(() => {});
           } else {
             job.status = 'done';
             job.progress = 1;
@@ -120,11 +134,13 @@ async function runLongform(job) {
             await writeFile(join(job.dir, 'result.txt'), `${result.text}\n`, 'utf8');
             await writeFile(join(job.dir, 'result.srt'), result.srt || '', 'utf8');
             await writeFile(join(job.dir, 'result.vtt'), result.vtt || '', 'utf8');
+            await captureHoldForJob({ userId: job.userId, jobId: job.id }).catch(() => {});
           }
         }
       } catch (error) {
         job.status = 'failed';
         job.error = error instanceof Error ? error.message : 'Не удалось прочитать результат';
+        await releaseHoldForJob({ userId: job.userId, jobId: job.id }).catch(() => {});
       }
       job.updatedAt = new Date().toISOString();
       await persist(job);
@@ -149,15 +165,41 @@ export async function createJobFromUpload(req, mediaRoot, { title } = {}) {
   await pipeline(req, limit, createWriteStream(input, { flags: 'wx' }));
   if (!size) throw new MediaError('Файл пуст.');
   const extracted = await extractAudio(input, output);
+  const cost = costSnapshotFromSeconds(extracted.seconds);
+  const userId = demoUserId();
+  let holdId = null;
+  try {
+    const reserved = await reserveForJob({
+      userId,
+      jobId: id,
+      durationSeconds: extracted.seconds,
+      idempotencyKey: `hold:job:${id}`,
+    });
+    holdId = reserved.hold?.id || null;
+  } catch (error) {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+    if (error && error.code === 'INSUFFICIENT_FUNDS') {
+      const err = new MediaError(
+        `Недостаточно средств на балансе. Нужно ${(error.costKopecks / 100).toFixed(2).replace('.', ',')} ₽, доступно ${(error.availableKopecks / 100).toFixed(2).replace('.', ',')} ₽.`,
+      );
+      err.code = 'INSUFFICIENT_FUNDS';
+      throw err;
+    }
+    throw error;
+  }
   const job = {
     id,
     dir,
+    userId,
     status: 'queued',
     progress: 0,
     error: null,
     title: title || 'Запись',
     durationSeconds: extracted.seconds,
     backend: backendEnv(),
+    cost,
+    holdId,
+    billingEnabled: billingEnabled(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     result: null,
@@ -169,6 +211,7 @@ export async function createJobFromUpload(req, mediaRoot, { title } = {}) {
       job.status = 'failed';
       job.error = error instanceof Error ? error.message : 'Сбой worker';
       job.updatedAt = new Date().toISOString();
+      await releaseHoldForJob({ userId: job.userId, jobId: job.id }).catch(() => {});
       await persist(job);
     });
   });

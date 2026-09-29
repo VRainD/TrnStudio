@@ -6,8 +6,10 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node tools/preview.mjs",
-    "test": "node tools/test-media.mjs && TRANSCRIBE_BACKEND=mock python3 tools/test-longform.py",
-    "test:ui": "node tools/test-interface.cjs"
+    "test": "node tools/test-billing.mjs && node tools/test-media.mjs && TRANSCRIBE_BACKEND=mock python3 tools/test-longform.py",
+    "test:billing": "node tools/test-billing.mjs",
+    "test:ui": "node tools/test-interface.cjs",
+    "billing:admin": "node tools/billing/admin-cli.mjs"
   },
   "devDependencies": { "playwright": "1.62.1" }
 }
