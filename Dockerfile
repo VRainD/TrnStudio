@@ -5,10 +5,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY --chown=node:node prototype/ ./prototype/
 COPY --chown=node:node tools/preview.mjs tools/media.mjs tools/jobs.mjs ./tools/
+COPY --chown=node:node tools/billing ./tools/billing/
 COPY --chown=node:node worker/longform_transcribe.py ./worker/
 COPY --chown=node:node worker/asr ./worker/asr/
-RUN mkdir -p /app/.local-media && chown node:node /app/.local-media /app/worker
-ENV NODE_ENV=production HOST=0.0.0.0 PORT=4173 TRANSCRIBE_BACKEND=auto PYTHON=python3
+RUN mkdir -p /app/.local-media /app/.local-billing && chown node:node /app/.local-media /app/.local-billing /app/worker
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=4173 TRANSCRIBE_BACKEND=auto PYTHON=python3 BILLING_ENABLED=false PAYMENT_DRIVER=stub
 USER node
 EXPOSE 4173
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

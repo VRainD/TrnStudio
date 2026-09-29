@@ -8,8 +8,11 @@ services:
       - "127.0.0.1:${STUDIO_PORT:-4180}:4173"
     environment:
       PUBLIC_ORIGIN: "http://127.0.0.1:${STUDIO_PORT:-4180}"
+      BILLING_ENABLED: "${BILLING_ENABLED:-false}"
+      PAYMENT_DRIVER: "${PAYMENT_DRIVER:-stub}"
     volumes:
       - media_temp:/app/.local-media
+      - billing_data:/app/.local-billing
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -68,4 +71,5 @@ services:
               capabilities: [gpu]
 volumes:
   media_temp:
+  billing_data:
   gpu_probe_data:
